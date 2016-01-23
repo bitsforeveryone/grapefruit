@@ -11,6 +11,7 @@ class Server:
         self.host = ''
         self.staticport = 31337
         self.rollingport = random.randint(10000,20000)
+        self.porttimeout = 60
         self.backlog = 5
         self.size = 1024
         self.server = None
@@ -38,10 +39,13 @@ class Server:
             sys.exit(1)
 
     def run(self):
+        sys.stdout.write("> ")
         self.open_sockets()
+        commands = {"quit": exit, "status": self.status}
         input = [self.staticserver,self.rollingserver,sys.stdin]
         running = 1
         while running:
+            
             inputready,outputready,exceptready = select.select(input,[],[])
             for s in inputready:
                 if s == self.staticserver:
@@ -58,15 +62,24 @@ class Server:
 
                 elif s == sys.stdin:
                     # handle standard input
-                    junk = sys.stdin.readline()
-                    running = 0
+                    keyboard = sys.stdin.readline().strip()
+                    res = keyboard.split()
+                    if len(res) > 0:
+                        if res[0] in commands:
+                            commands[res[0]](*res[1:])
+                    sys.stdout.write("> ")
 
         # close all threads
-
         self.staticserver.close()
         self.rollingserver.close()
         for c in self.threads:
             c.join()
+
+    def status(self):
+        print "---MOTHERSHIP STATUS---"
+        print "Static Port: {0}".format(self.staticport)
+        print "Rolling Port: {0}".format(self.rollingport)
+        print "Port Timeout: {0}".format(self.porttimeout)
 
 class StaticClient(threading.Thread):
     def __init__(self,(client,address)):
@@ -81,7 +94,7 @@ class StaticClient(threading.Thread):
         while running:
             pass
 
- class RollingClient(threading.Thread):
+class RollingClient(threading.Thread):
     def __init__(self,(client,address)):
         threading.Thread.__init__(self)
         self.client = client
