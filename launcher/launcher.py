@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys, threading, imp, os, time, random, json
 
 jobs = {}
