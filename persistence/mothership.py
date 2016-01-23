@@ -1,45 +1,58 @@
 #!/usr/bin/env python
 
-"""
-An echo server that uses threads to handle multiple clients at a time.
-Entering any line of input at the terminal will exit the server.
-"""
-
 import select
 import socket
 import sys
 import threading
+import random
 
 class Server:
     def __init__(self):
         self.host = ''
-        self.port = 15006
+        self.staticport = 31337
+        self.rollingport = random.randint(10000,20000)
         self.backlog = 5
         self.size = 1024
         self.server = None
         self.threads = []
 
-    def open_socket(self):
+    def open_sockets(self):
         try:
-            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.bind((self.host,self.port))
-            self.server.listen(5)
+            self.staticserver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.staticserver.bind((self.host,self.staticport))
+            self.staticserver.listen(5)
         except socket.error, (value,message):
-            if self.server:
-                self.server.close()
-            print "Could not open socket: " + message
+            if self.staticserver:
+                self.staticserver.close()
+            #print "[!] Could not open static socket: " + message
+            sys.exit(1)
+
+        try:
+            self.rollingserver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.rollingserver.bind((self.host,self.rollingport))
+            self.rollingserver.listen(5)
+        except socket.error, (value,message):
+            if self.rollingserver:
+                self.rollingserver.close()
+            #print "[!] Could not open rolling socket: " + message
             sys.exit(1)
 
     def run(self):
-        self.open_socket()
-        input = [self.server,sys.stdin]
+        self.open_sockets()
+        input = [self.staticserver,self.rollingserver,sys.stdin]
         running = 1
         while running:
             inputready,outputready,exceptready = select.select(input,[],[])
             for s in inputready:
-                if s == self.server:
+                if s == self.staticserver:
                     # handle the server socket
-                    c = Client(self.server.accept())
+                    c = StaticClient(self.staticserver.accept())
+                    c.start()
+                    self.threads.append(c)
+
+                if s == self.rollingserver:
+                    # handle the server socket
+                    c = RollingClient(self.rollingserver.accept())
                     c.start()
                     self.threads.append(c)
 
@@ -50,29 +63,36 @@ class Server:
 
         # close all threads
 
-        self.server.close()
+        self.staticserver.close()
+        self.rollingserver.close()
         for c in self.threads:
             c.join()
 
-class Client(threading.Thread):
+class StaticClient(threading.Thread):
     def __init__(self,(client,address)):
         threading.Thread.__init__(self)
         self.client = client
         self.address = address
         self.size = 1024
-	print "[+] New connection from {0}".format(address)
+        #print "[+] New connection from {0}".format(address)
 
     def run(self):
-        if self.client.recv(4) != "\x01\x01\x02\x02":
-            self.client.close()
         running = 1
         while running:
-            data = self.client.recv(self.size)
-            if data:
-                print data+"@"+self.address[0]
-            else:
-                self.client.close()
-                running = 0
+            pass
+
+ class RollingClient(threading.Thread):
+    def __init__(self,(client,address)):
+        threading.Thread.__init__(self)
+        self.client = client
+        self.address = address
+        self.size = 1024
+        #print "[+] New connection from {0}".format(address)
+
+    def run(self):
+        running = 1
+        while running:
+            pass              
 
 if __name__ == "__main__":
     s = Server()
