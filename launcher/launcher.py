@@ -11,10 +11,9 @@ sys.path.insert(0, './jobs')
 def writeLog(name, info):
 	try:
 		log = logs[name]
-		logc = log_cache[name]
 		nstring = "[" + time.strftime("%x") + " " + time.strftime("%X") + "]: " + info + "\n"
 		log.write(nstring)
-		logc += nstring
+		log_cache[name] += nstring
 	except:
 		pass # only doing this so this will never crash
 
@@ -131,7 +130,7 @@ def changeInterval(commands):
 		return
 
 	name = commands[1]
-	interval = int(commands[2])
+	interval = int(commands[2]) if commands[2].isdigit() else 0
 
 	if name not in jobs:
 		print "job does not exist for that name"
@@ -176,10 +175,17 @@ def quitLauncher(commands):
 	quit()
 
 def postFlag(station, flag, jobName):
-	writeLog(jobName, station, "->", flag, "[", jobName, "]")
+	#submit with curl?
+	return
 
 def getIpFromStation(station):
 	return "133.33.37." + str(station)
+
+class LogObject(object):
+	def __init__(self, n):
+		self.name = n
+	def __call__(self, *p, **k):
+		writeLog(self.name, " ".join([str(x) for x in p]))
 
 def launchJob(name, station, real=True):
 	try:
@@ -200,8 +206,10 @@ def launchJob(name, station, real=True):
 			expected_func = "fakeJob"
 
 		if hasattr(py_mod, expected_func):
+			log = LogObject(name)
+
 			if real:
-				flag = getattr(py_mod, expected_func)(getIpFromStation(station))
+				flag = getattr(py_mod, expected_func)(getIpFromStation(station), log)
 				if flag:
 					postFlag(station, flag, name)
 					writeLog(name, "Job " + name + " exited successfully on station " + str(station) + " with flag: " + flag)
@@ -210,7 +218,7 @@ def launchJob(name, station, real=True):
 					writeLog(name, "Job " + name + " couldn't find a flag from station " + str(station))
 					return False
 			else:
-				getattr(py_mod, expected_func)(getIpFromStation(station))
+				getattr(py_mod, expected_func)(getIpFromStation(station), log)
 				writeLog(name, "Job " + name + " ran a fake job on station " + str(station))
 		else:
 			writeLog(name, "Job " + name + " doesn't have a " + expected_func + " definition")
@@ -243,7 +251,7 @@ def printLog(commands):
 		return
 
 	name = commands[1]
-	lines = int(commands[2])
+	lines = int(commands[2]) if commands[2].isdigit() else 10
 
 	if name not in jobs:
 		print "job does not exist for that name"
@@ -309,6 +317,10 @@ def launcher():
 			njobs = json.loads(f.read())
 			for key in njobs.keys():
 				jobs[key] = njobs[key]
+				fi = open(jobs[key]["log"], "a+")
+				log_cache[key] = fi.read()
+				fi.close()
+				logs[key] = open(jobs[key]["log"], "a+")
 			f.close()
 			print "Successfully imported jobs file"
 		except:
