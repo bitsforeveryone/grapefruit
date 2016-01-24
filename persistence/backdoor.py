@@ -28,7 +28,8 @@ def migratePorts(port, data):
 	s.send(json.dumps({"data": data})+chr(255))
 
 def code(command, port):
-	print '[~] Running "{0}"'.format(command)
+	if command:
+		print '[~] Running "{0}"'.format(command)
 
 	try:
 		output = ""
@@ -49,8 +50,6 @@ def code(command, port):
 			main()
 	except:
 		pass
-
-commands = {"NEWPORT": migratePorts, "CODE": code}
 
 
 def main():
