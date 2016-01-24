@@ -3,8 +3,7 @@
 import socket,subprocess,time,getpass,fcntl,struct,os,json,sys
 from cStringIO import StringIO
 
-#HOST = "127.0.0.1"     # The home ship
-HOST = "10.60.139.17"
+HOST = "127.0.0.1"     # The home ship
 STATICPORT = 31368     # The same port as used by the server
 PORT = -1
 SCRIPTNAME = os.path.basename(__file__)
