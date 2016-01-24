@@ -9,13 +9,11 @@ import time
 import copy
 import json
 
-host = '127.0.0.1'
 staticport = 31337
 thread_count = 0
 
 class Server:
     def __init__(self):
-        self.host = '127.0.0.1'
         self.porttimeout = 5
         self.backlog = 5
         self.size = 1024
@@ -25,7 +23,7 @@ class Server:
     def open_socket(self):
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.bind((self.host,staticport))
+            self.server.bind(('',staticport))
             self.server.listen(5)
         except socket.error, (value,message):
             if self.server:
@@ -112,7 +110,7 @@ class RollingClient(threading.Thread):
             self.client.close()
             self.newsock = socket.socket()
             self.newsock.settimeout(5)
-            self.newsock.bind((host,self.newport))
+            self.newsock.bind(('',self.newport))
             self.newsock.listen(5)
         except Exception as e:
             print self.name + ": "+str(e)
