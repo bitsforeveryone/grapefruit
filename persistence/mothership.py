@@ -15,7 +15,7 @@ thread_count = 0
 
 class Server:
     def __init__(self):
-        self.host = '127.0.0.1'
+        self.host = host
         self.porttimeout = 5
         self.backlog = 5
         self.size = 1024
