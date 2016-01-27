@@ -1,5 +1,8 @@
+import sqlite3
 from flask import Flask, render_template, send_from_directory
 
+db = sqlite3.connect('db.db')
+db_command = db.cursor()
 app = Flask(__name__)
 
 services = ["battleship", "y", "z"]
@@ -26,5 +29,14 @@ def conversations(service, roundNum):
 @app.route('/index.html')
 def index():
 	return render_template("pages/index.html")
+
+def setupDB():
+	try:
+		print "Setting up DB..."
+		db_command.execute("CREATE TABLE rounds (round text primary key, time timestamp)")
+	except Exception as e:
+		print "DB already created"
+
 if __name__ == '__main__':
+    setupDB()
     app.run(debug=True)
