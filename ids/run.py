@@ -1,8 +1,10 @@
 import sqlite3
+import subprocess
 from flask import Flask, render_template, send_from_directory, g
 
 app = Flask(__name__)
 
+CONVO_DIR="conversations/"
 services = []
 
 DATABASE = 'db.db'
@@ -33,6 +35,10 @@ def getServices():
 			services.append(service[0])
 	return res
 
+def getConversationsByService(service):
+	port = service[1]
+	return subprocess.check_output("find {0} -type f | wc -l".format(CONVO_DIR+str(port)), shell=True)
+
 @app.route('/services')
 def serviceList():
 	services = getServices()
@@ -44,8 +50,8 @@ def service(service):
         return "Service not found.", 404
 
     service=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-
-    return render_template("pages/service.html", service=service)
+    convoNum = getConversationsByService(service)
+    return render_template("pages/service.html", service=service, convoNum=convoNum)
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
@@ -70,4 +76,4 @@ def setupDB():
 		db.commit()
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
