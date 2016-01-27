@@ -1,11 +1,18 @@
 import sqlite3
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, g
 
-db = sqlite3.connect('db.db')
-db_command = db.cursor()
 app = Flask(__name__)
 
-services = ["battleship", "sheepheap"]
+services = []
+
+DATABASE = 'db.db'
+def get_db():
+    """Opens a new database connection if there is none yet for the
+    current application context.
+    """
+    if not hasattr(g, 'sqlite_db'):
+        g.sqlite_db = sqlite3.connect(DATABASE)
+    return g.sqlite_db
 
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
@@ -19,24 +26,48 @@ def send_js(path):
 def send_dist(path):
     return send_from_directory('templates/dist', path)
 
-@app.route('/conversations/<string:service>/<string:roundNum>')
+def getServices():
+	res = get_db().execute("SELECT * FROM services").fetchall()
+	for service in res:
+		if (service[0] not in services):
+			services.append(service[0])
+	return res
+
+@app.route('/services')
+def serviceList():
+	services = getServices()
+	return render_template("pages/services.html", services=services)
+
+@app.route('/services/<string:service>')
+def service(service):
+    if service not in services:
+        return "Service not found.", 404
+
+    service=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
+
+    return render_template("pages/service.html", service=service)
+
+@app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
     if service not in services:
         return "Service not found.", 404
-    return render_template("pages/conversations.html", title="{0} - Round {1}".format(service,roundNum), round=roundNum, service=service)
+    return render_template("pages/conversations.html", round=roundNum, service=service)
 
 @app.route('/')
 @app.route('/index.html')
 def index():
-	return render_template("pages/index.html")
+	return render_template("pages/index.html", serviceNum=len(services))
 
 def setupDB():
-	try:
+	with app.app_context():
 		print "Setting up DB..."
-		db_command.execute("CREATE TABLE rounds (round text primary key, time timestamp)")
-	except Exception as e:
-		print "DB already created"
+		db = sqlite3.connect('db.db')
+		db.cursor().execute("CREATE TABLE rounds (round text primary key unique, time timestamp)")
+		db.cursor().execute("CREATE TABLE services (name text primary key, port integer)")
+		db.commit()
+
+		db.cursor().execute("INSERT INTO services VALUES ('battleship',1337)")
+		db.commit()
 
 if __name__ == '__main__':
-    setupDB()
-    app.run(debug=True)
+    app.run()

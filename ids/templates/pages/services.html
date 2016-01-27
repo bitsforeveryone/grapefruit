@@ -1,0 +1,26 @@
+{% extends "pages/base.html" %}
+
+{% block body %}
+    {% for service in services %}
+        <div class="row">
+        <div class="col-lg-2 col-md-6">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-md-9 text-right">
+                            <p>{{ service[0] }}</p>
+                        </div>
+                    </div>
+                </div>
+                <a href="/services/{{ service[0] }}">
+                    <div class="panel-footer">
+                        <span class="pull-left">View</span>
+                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                        <div class="clearfix"></div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endblock %}
