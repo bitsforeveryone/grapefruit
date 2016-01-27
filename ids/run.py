@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import subprocess
 from flask import Flask, render_template, send_from_directory, g
@@ -35,6 +36,18 @@ def getServices():
 			services.append(service[0])
 	return res
 
+def getConversationGraphData(service):
+	graph = {}
+	graph['element'] = "morris-bar-chart"
+	graph['data'] = []
+	graph['xkey'] = 'x'
+	graph['ykeys'] = ['y']
+	graph['labels'] = ['Size'] 
+	port = service[1]
+	for i in range(1,6):
+		graph['data'].append({"x": 10**i, "y": int(subprocess.check_output("find {0}/{1} -type f | wc -l".format(CONVO_DIR+str(port), 10**i), shell=True).strip())})
+	return json.dumps(graph)
+
 def getConversationsByService(service):
 	port = service[1]
 	return subprocess.check_output("find {0} -type f | wc -l".format(CONVO_DIR+str(port)), shell=True)
@@ -51,7 +64,9 @@ def service(service):
 
     service=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     convoNum = getConversationsByService(service)
-    return render_template("pages/service.html", service=service, convoNum=convoNum)
+    graphData = getConversationGraphData(service)
+
+    return render_template("pages/service.html", service=service, convoNum=convoNum, graphData=graphData)
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
