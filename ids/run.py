@@ -5,7 +5,7 @@ db = sqlite3.connect('db.db')
 db_command = db.cursor()
 app = Flask(__name__)
 
-services = ["battleship", "y", "z"]
+services = ["battleship", "sheepheap"]
 
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
