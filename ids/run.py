@@ -2,6 +2,9 @@ from flask import Flask, render_template, send_from_directory
 
 app = Flask(__name__)
 
+def listVals():
+	return ['a','b','c','d']
+
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
     return send_from_directory('templates/bower_components', path)
@@ -16,7 +19,7 @@ def send_dist(path):
 
 @app.route('/')
 def index():
-    return render_template("pages/index.html", title="Asdf")
+    return render_template("pages/index.html", title="Home", vals=listVals())
 
 if __name__ == '__main__':
     app.run(debug=True)
