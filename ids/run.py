@@ -10,9 +10,6 @@ services = []
 
 DATABASE = 'db.db'
 def get_db():
-    """Opens a new database connection if there is none yet for the
-    current application context.
-    """
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = sqlite3.connect(DATABASE)
     return g.sqlite_db
@@ -72,7 +69,12 @@ def service(service):
 def conversations(service, roundNum):
     if service not in services:
         return "Service not found.", 404
-    return render_template("pages/conversations.html", round=roundNum, service=service)
+
+    service=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
+    roundNum=get_db().execute("SELECT * FROM rounds ORDER BY round ASC LIMIT 1")
+    convoNum = getConversationsByService(service)
+    graphData = getConversationGraphData(service)
+    return render_template("pages/conversations.html", round=roundNum, service=service, convoNum=convoNum, graphData=graphData)
 
 @app.route('/')
 @app.route('/index.html')

@@ -3,6 +3,12 @@ import os
 STAGING_DIR="staging/"
 ROOT_DIR="conversations/"
 
+if not os.path.exists(STAGING_DIR):
+    os.makedirs(STAGING_DIR)
+
+if not os.path.exists(ROOT_DIR):
+    os.makedirs(ROOT_DIR)
+
 def splicePCAPs():
 	for pcap in os.listdir(STAGING_DIR):
 		if pcap.endswith(".pcap"):
@@ -11,7 +17,7 @@ def splicePCAPs():
 def createServiceFolders():
 	ports = []
 	for f in os.listdir(STAGING_DIR):
-		if not f.endswith((".pcap", ".xml", ".txt")):
+		if not f.endswith((".pcap", ".xml", ".txt", ".pcapng")):
 			dport = int(f.split(":")[-1])
 			if dport not in ports:
 				ports.append(dport)
