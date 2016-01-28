@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import sqlite3
 import subprocess
@@ -19,15 +21,15 @@ def get_db():
 
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
-    return send_from_directory('templates/bower_components', path)
+    return send_from_directory('./templates/bower_components', path)
 
 @app.route('/js/<path:path>')
 def send_js(path):
-    return send_from_directory('templates/js', path)
+    return send_from_directory('./templates/js', path)
 
 @app.route('/dist/<path:path>')
 def send_dist(path):
-    return send_from_directory('templates/dist', path)
+    return send_from_directory('./templates/dist', path)
 
 def getServices():
 	res = get_db().execute("SELECT * FROM services").fetchall()

@@ -5,13 +5,13 @@ ROOT_DIR="conversations/"
 
 def splicePCAPs():
 	for pcap in os.listdir(STAGING_DIR):
-		if pcap.endswith(".pcap"):
+		if pcap.endswith((".pcap",".pcapng")):
 			print os.system("tcpflow -o {1} -r {0} -T%t_%A:%a-%B:%b".format(STAGING_DIR+pcap, STAGING_DIR))
 
 def createServiceFolders():
 	ports = []
 	for f in os.listdir(STAGING_DIR):
-		if not f.endswith((".pcap", ".xml", ".txt")):
+		if not f.endswith((".pcap", ".xml", ".txt",".pcapng")):
 			dport = int(f.split(":")[-1])
 			if dport not in ports:
 				ports.append(dport)
@@ -31,7 +31,7 @@ def createSizeFolders():
 def sortConversations():
 	sizes = []
 	for f in os.listdir(STAGING_DIR):
-		if not f.endswith((".pcap", ".xml", ".txt")):
+		if not f.endswith((".pcap", ".xml", ".txt",".pcapng")):
 			dport = int(f.split(":")[-1])
 			size = os.path.getsize(STAGING_DIR+f)
 			i = 1
