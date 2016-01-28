@@ -82,17 +82,6 @@ def conversations(service, roundNum):
 @app.route('/index.html')
 def index():
 	return render_template("pages/index.html", serviceNum=len(services))
-
-def setupDB():
-	with app.app_context():
-		print "Setting up DB..."
-		db = sqlite3.connect('db.db')
-		db.cursor().execute("CREATE TABLE rounds (round text primary key unique, time timestamp)")
-		db.cursor().execute("CREATE TABLE services (name text primary key, port integer)")
-		db.commit()
-
-		db.cursor().execute("INSERT INTO services VALUES ('battleship',1337)")
-		db.commit()
-
+	
 if __name__ == '__main__':
     app.run(debug=True)
