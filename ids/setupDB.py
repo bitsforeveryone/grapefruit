@@ -32,7 +32,7 @@ def setupDB():
 		                id integer primary key,
 		                filename text,
 		                regex text,
-		                seen boolean default false,
+		                seen integer default 0,
 		                foreign key(filename) references conversations(filename),
 		                foreign key(regex) references regexes(regex)
 		                CONSTRAINT unq UNIQUE (filename, regex))

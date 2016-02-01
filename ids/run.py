@@ -44,7 +44,7 @@ def getServices():
 			services.append(service[0])
 	return res
 def getAlerts():
-	alerts = get_db().execute("SELECT * FROM alerts WHERE seen != 0").fetchall()
+	alerts = get_db().execute("SELECT * FROM alerts WHERE seen != 1").fetchall()
 	return alerts
 def readReport(filepath):
 	doc = {}
@@ -140,6 +140,18 @@ def addRegex():
 	get_db().commit()
 	return redirect("/debug/alerts")
 
+@app.route('/alerts/dismiss/<int:idnum>')
+def dismissAlert(idnum):
+	get_db().execute("UPDATE alerts SET seen=1 WHERE id=(?)", [idnum])
+	get_db().commit()
+	return redirect("/alerts")
+
+@app.route('/alerts/clear')
+def clearAlerts():
+	get_db().execute("UPDATE alerts SET seen=0")
+	get_db().commit()
+	return redirect("/alerts")
+
 @app.route('/alerts')
 def alertDashboard():
 	return render_template('pages/alerts.html', alerts=getAlerts())
@@ -162,4 +174,4 @@ def index():
 	return render_template("pages/index.html", serviceNum=len(services), alertNum=numAlerts)
 	
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
