@@ -71,9 +71,12 @@ def getCharts(service, conversations):
 	graph['ykeys'] = ['y']
 	graph['labels'] = ['Size'] 
 	port = service[1]
+	bins = [0, 0, 0, 0, 0, 0, 0]
 	for convo in conversations:
 		if convo[2] != 0:
-		    graph['data'].append({"x": convo[1], "y": 10**(ceil(log10(convo[2]))-1)})
+			bins[int(ceil(log10(convo[2]))-1)] += 1
+	for n in range(len(bins)):
+		graph['data'].append({"x": 10**n, "y": bins[n]})
 	return json.dumps(graph)
 
 def getServices():
