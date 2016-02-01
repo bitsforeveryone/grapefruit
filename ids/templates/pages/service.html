@@ -8,7 +8,7 @@
         <div class="col-md-2">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3> Total Conversations: {{ convoNum }}</h3>
+                    <h3> Total Conversations: {{ conversations.length }}</h3>
                 </div>
             </div>
         </div>
@@ -34,11 +34,23 @@
                 </div>
                 <!-- /.panel-heading -->
                 <div class="panel-body">
-                    {% for convo in conversations %}
-                      {{ convo }}
-                    {% endfor %}
+                    <table class = "table table-striped">
+                        <tr>
+                            <th> Time </th>
+                            <th> SPORT </th>
+                            <th> DPORT </th>
+                        </tr>
+                        {% for convo in conversations %}
+                          <tr> 
+                            <td> {{ convo[1] }} </td> 
+                            <td> {{ convo[3] }} </td> 
+                            <td> {{ convo[4] }} </td> 
+                          </tr>
+                        {% endfor %}
+                    </table>
                 </div>
             </div>
+        </div>
     </div>
 
     <script>
