@@ -44,9 +44,10 @@
                             <td> {{ alert[2] }} </td>
                             <td> {{ alert[1] }} </td>
                             <td> <a href="/conversations/{{ alert[1] }}">File</a> </td>
-                            <td> <a href="/alert/dismiss"><button type="button" class="btn btn-info">X</button></a></td>
+                            <td> <a href="/alerts/dismiss/{{ alert[0] }}"><button type="button" class="btn btn-info">X</button></a></td>
                           </tr>
                         {% endfor %}
+                        <tr> <td></td><td> <a href="/alerts/clear">Display all alerts</a></td><td></td><td></td></tr>
                     </table>
                 </div>
                 <!-- /.panel-body -->
