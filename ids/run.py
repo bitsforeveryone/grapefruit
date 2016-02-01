@@ -4,6 +4,7 @@ import json
 import sqlite3
 import subprocess
 import xmltodict
+from math import ceil, log10
 from flask import Flask, render_template, send_from_directory, g, request
 
 app = Flask(__name__)
@@ -62,6 +63,18 @@ def send_dist(path):
 def send_convo(path):
     return send_from_directory('./conversations', path)
 
+def getCharts(service, conversations):
+	graph = {}
+	graph['element'] = "morris-bar-chart"
+	graph['data'] = []
+	graph['xkey'] = 'x'
+	graph['ykeys'] = ['y']
+	graph['labels'] = ['Size'] 
+	port = service[1]
+	for convo in conversations:
+		if convo[2] != 0:
+		    graph['data'].append({"x": convo[1], "y": 10**(ceil(log10(convo[2]))-1)})
+	return json.dumps(graph)
 
 def getServices():
 	res = get_db().execute("SELECT name FROM services").fetchall()
@@ -87,7 +100,7 @@ def service(service):
     print type(conversations)
     for convo in conversations:
     	print convo
-    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations))
+    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
