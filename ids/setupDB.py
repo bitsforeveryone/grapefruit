@@ -33,8 +33,10 @@ def setupDB():
 		                filename text,
 		                regex text,
 		                seen integer default 0,
+		                round integer,
 		                foreign key(filename) references conversations(filename),
 		                foreign key(regex) references regexes(regex)
+		                foreign key(round) references rounds(num)
 		                CONSTRAINT unq UNIQUE (filename, regex))
 		                """)
 	db.cursor().execute("""CREATE TABLE regexes (
@@ -48,7 +50,6 @@ def setupDB():
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('banananana', 3002)")
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('imoutofnames', 3003)")
 	db.cursor().execute("INSERT INTO rounds VALUES (0, datetime('now'))")
-	db.cursor().execute("INSERT INTO regexes (regex) VALUES ('A')")
 	db.commit()
 
 setupDB()

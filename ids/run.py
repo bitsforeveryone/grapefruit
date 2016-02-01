@@ -45,11 +45,6 @@ def getServices():
 def getAlerts():
 	alerts = get_db().execute("SELECT * FROM alerts WHERE seen != 1").fetchall()
 	return alerts
-def readReport(filepath):
-	doc = {}
-	with open(filepath,'r') as fd:
-		doc = xmltodict.parse(fd.read())
-	return doc['dfxml']['configuration'][1]['fileobject']
 
 def generateAlerts():
 	patterns = []
@@ -65,8 +60,8 @@ def generateAlerts():
 				get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?",
 				                 [CURRENT_ROUND, pattern])
 				try:
-					get_db().execute("INSERT INTO alerts (filename, regex) VALUES (?,?)",
-					                 [f,pattern])
+					get_db().execute("INSERT INTO alerts (filename, regex, round) VALUES (?,?,?)",
+					                 [f,pattern, CURRENT_ROUND-1])
 				except sqlite3.IntegrityError:
 					break
 				get_db().commit()
@@ -142,7 +137,7 @@ def alertDashboard():
 @app.route('/debug/report')
 def debugReport():
 	parseReport("conversations/report.xml")
-	return str(readReport("conversations/report.xml"))
+	return redirect("/")
 @app.route('/debug/alerts')
 def alerts():
 	generateAlerts()			
@@ -152,7 +147,7 @@ def alerts():
 @app.route('/index.html')
 def index():
 	getServices()
-	numAlerts = get_db().execute("SELECT count(*) FROM alerts").fetchone()[0]
+	numAlerts = get_db().execute("SELECT count(*) FROM alerts WHERE seen != 1").fetchone()[0]
 	return render_template("pages/index.html", serviceNum=len(services), alertNum=numAlerts)
 	
 if __name__ == '__main__':
