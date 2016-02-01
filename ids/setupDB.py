@@ -4,8 +4,8 @@ def setupDB():
 	print "Setting up DB..."
 	db = sqlite3.connect('db.db')
 	db.cursor().execute("""CREATE TABLE conversations ( 
-		                filename text primary key,
-		                time timestamp,
+		                filename text,
+		                time timestamp primary key,
 		                size integer,
 		                s_port integer,
 		                d_port integer,

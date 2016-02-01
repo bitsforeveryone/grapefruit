@@ -30,13 +30,18 @@ def parseReport(filepath):
 	with open(filepath,'r') as fd:
 		doc = xmltodict.parse(fd.read())
 	doc = doc['dfxml']['configuration'][1]['fileobject']
+	fname = ""
 	for convo in doc:
-		print str(i), str(convo['tcpflow'])
+		try:
+			fname = convo['filename']
+		except KeyError:
+			pass
+
 		get_db().execute("""INSERT INTO conversations 
-			             (time,s_port,d_port,s_ip,d_ip, round, service) 
+			             (filename, time, s_port, d_port, s_ip, d_ip, round, service) 
 			             VALUES
-			             (?, ?, ?, ?, ?, ?, ?)
-			             """, (convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,"battleship"))
+			             (?, ?, ?, ?, ?, ?, ?, ?)
+			             """, (fname.replace('staging/','conversations'), convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,"battleship"))
 		g.sqlite_db.commit()
 		
 
@@ -52,6 +57,11 @@ def send_js(path):
 @app.route('/dist/<path:path>')
 def send_dist(path):
     return send_from_directory('./templates/dist', path)
+
+@app.route('/conversations/<path:path>')
+def send_convo(path):
+    return send_from_directory('./conversations', path)
+
 
 def getServices():
 	res = get_db().execute("SELECT name FROM services").fetchall()
