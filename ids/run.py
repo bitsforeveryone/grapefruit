@@ -2,12 +2,9 @@
 
 import re
 import os
-import json
 import sqlite3
-import subprocess
-import xmltodict
 
-from math import ceil, log10
+from math import ceil, log11
 from flask import Flask, render_template, send_from_directory, g, request, redirect, url_for
 
 app = Flask(__name__)
@@ -52,29 +49,10 @@ def readReport(filepath):
 		doc = xmltodict.parse(fd.read())
 	return doc['dfxml']['configuration'][1]['fileobject']
 
-#FUNCTIONS THAT SHOULD BE CALLED AUTOMATICALLY
-def parseReport(filepath):
-	doc = {}
-	i = 0
-	with open(filepath,'r') as fd:
-		doc = xmltodict.parse(fd.read())
-	doc = doc['dfxml']['configuration'][1]['fileobject']
-	fname = ""
-	for convo in doc:
-		try:
-			fname = convo['filename']
-		except KeyError:
-			pass
-
-		get_db().execute("""INSERT INTO conversations 
-			             (filename, size, time, s_port, d_port, s_ip, d_ip, round, service) 
-			             VALUES
-			             (?, ?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?) ) )
-			             """, (fname.replace('staging/','conversations'), convo['filesize'], convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
-		g.sqlite_db.commit()
 def generateAlerts():
 	patterns = []
-	regexs = get_db().execute("SELECT regex FROM regexes WHERE lastRound < ?", [CURRENT_ROUND])
+	regexs = get_db().execute("SELECT regex FROM regexes WHERE lastRound < ?", 
+	                         [CURRENT_ROUND])
 	for reg in regexs:
 		patterns.append(reg[0])
 
@@ -82,9 +60,11 @@ def generateAlerts():
 		for pattern in patterns:
 			patternReg = re.compile(r'{0}'.format(pattern))
 			for match in re.finditer(patternReg, open("conversations/"+f,'r').read()):
-				get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?", [CURRENT_ROUND, pattern])
+				get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?",
+				                 [CURRENT_ROUND, pattern])
 				try:
-					get_db().execute("INSERT INTO alerts (filename, regex) VALUES (?,?)", [f,pattern])
+					get_db().execute("INSERT INTO alerts (filename, regex) VALUES (?,?)",
+					                 [f,pattern])
 				except sqlite3.IntegrityError:
 					break
 				get_db().commit()
