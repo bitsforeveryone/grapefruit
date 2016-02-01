@@ -4,7 +4,7 @@ import json
 import sqlite3
 import subprocess
 import xmltodict
-from flask import Flask, render_template, send_from_directory, g
+from flask import Flask, render_template, send_from_directory, g, request
 
 app = Flask(__name__)
 
@@ -80,8 +80,10 @@ def service(service):
     if service not in services:
         return "Service not found.", 404
 
+    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
+
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?)", [service]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) ORDER BY (?) DESC", [service, sort]).fetchall()
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen = len(conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
@@ -89,8 +91,10 @@ def conversations(service, roundNum):
     if service not in services:
         return "Service not found.", 404
 
+    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
+
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?)", [service, roundNum]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?)", [service, roundNum, sort]).fetchall()
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen = len(conversations))
 
 @app.route('/debug/report')

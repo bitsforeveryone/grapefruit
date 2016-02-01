@@ -39,6 +39,7 @@
                             <th> Time </th>
                             <th> SPORT </th>
                             <th> DPORT </th>
+                            <th> Round </th>
                             <th> PCAP </th>
                         </tr>
                         {% for convo in conversations %}
@@ -46,6 +47,7 @@
                             <td> {{ convo[1] }} </td> 
                             <td> {{ convo[3] }} </td> 
                             <td> {{ convo[4] }} </td> 
+                            <td> <a href="/services/{{ service[1] }}/0">0</a> </td>
                             <td> <a href="/{{ convo[0] }}"> File </a> </td>
                           </tr>
                         {% endfor %}
