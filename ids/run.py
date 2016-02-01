@@ -2,12 +2,14 @@
 
 import re
 import os
-import sqlite3
+import sqlite3, json
 
-from math import ceil, log11
+from math import ceil, log10
 from flask import Flask, render_template, send_from_directory, g, request, redirect, url_for
 
 app = Flask(__name__)
+
+DEBUG=False
 
 CURRENT_ROUND = 1
 CONVO_DIR="conversations/"
@@ -154,4 +156,4 @@ def index():
 	return render_template("pages/index.html", serviceNum=len(services), alertNum=numAlerts)
 	
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=DEBUG)

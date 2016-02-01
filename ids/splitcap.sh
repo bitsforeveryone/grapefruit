@@ -2,11 +2,17 @@
 
 ROUND=$1
 FILE=$2
+DIR=$(pwd)
+_pushround=$DIR/pushround.py
 
-_pushround = $(which pushround.py)
+if [ -z $ROUND ]; then
+	ROUND='0'
+fi
 
-cd staging
-tcpflow -o conversations/$ROUND -T %T_%C_%a-%b_%A-%B -l *.pcap*
+if [ -z $FILE ]; then
+	FILE=$DIR/"staging/*.pcap*"
+fi
 
-cd ../conversations/$ROUND
-$_pushround report.xml
+tcpflow -o $DIR/conversations/$ROUND -T %T_%C_%a-%b_%A-%B -l $FILE
+
+$_pushround $DIR/conversations/$ROUND/"report.xml"
