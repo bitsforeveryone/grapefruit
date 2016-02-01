@@ -36,11 +36,11 @@
                 <div class="panel-body">
                     <table class = "table table-striped">
                         <tr>
-                            <th> Time </th>
-                            <th> SPORT </th>
-                            <th> DPORT </th>
-                            <th> Round </th>
-                            <th> PCAP </th>
+                            <th> <a href="?sortby=time"> Time </a></th>
+                            <th> <a href="?sortby=s_port">SPORT </a></th>
+                            <th> <a href="?sortby=d_port">DPORT </a></th>
+                            <th> <a href="?sortby=round">Round </a></th>
+                            <th> <a href="?sortby=filename">PCAP </a></th>
                         </tr>
                         {% for convo in conversations %}
                           <tr> 
