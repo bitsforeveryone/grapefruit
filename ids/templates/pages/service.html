@@ -14,7 +14,7 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     Bar Chart Example
@@ -27,7 +27,7 @@
             </div>
             <!-- /.panel -->
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-8">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     Conversation Table
@@ -37,17 +37,19 @@
                     <table class = "table table-striped">
                         <tr>
                             <th> <a href="?sortby=time"> Time </a></th>
-                            <th> <a href="?sortby=s_port">SPORT </a></th>
-                            <th> <a href="?sortby=d_port">DPORT </a></th>
-                            <th> <a href="?sortby=round">Round </a></th>
-                            <th> <a href="?sortby=filename">PCAP </a></th>
+                            <th> <a href="?sortby=size"> Size </a></th>
+                            <th> <a href="?sortby=s_port"> SPORT </a></th>
+                            <th> <a href="?sortby=d_port"> DPORT </a></th>
+                            <th> <a href="?sortby=round"> Round </a></th>
+                            <th> <a href="?sortby=filename"> PCAP </a></th>
                         </tr>
                         {% for convo in conversations %}
                           <tr> 
                             <td> {{ convo[1] }} </td> 
+                            <td> {{ convo[2] }} </td>
                             <td> {{ convo[3] }} </td> 
                             <td> {{ convo[4] }} </td> 
-                            <td> <a href="/services/{{ service[1] }}/0">0</a> </td>
+                            <td> <a href="/services/{{ service[1] }}/0"> 0 </a> </td>
                             <td> <a href="/{{ convo[0] }}"> File </a> </td>
                           </tr>
                         {% endfor %}

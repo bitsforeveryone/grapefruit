@@ -38,10 +38,10 @@ def parseReport(filepath):
 			pass
 
 		get_db().execute("""INSERT INTO conversations 
-			             (filename, time, s_port, d_port, s_ip, d_ip, round, service) 
+			             (filename, size, time, s_port, d_port, s_ip, d_ip, round, service) 
 			             VALUES
-			             (?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?) ) )
-			             """, (fname.replace('staging/','conversations'), convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
+			             (?, ?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?) ) )
+			             """, (fname.replace('staging/','conversations'), convo['filesize'], convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
 		g.sqlite_db.commit()
 		
 
@@ -83,7 +83,7 @@ def service(service):
     sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     print sort
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) ORDER BY {0}".format(str(sort)), [service]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) ORDER BY {0}".format(sort), [service]).fetchall()
     print type(conversations)
     for convo in conversations:
     	print convo
@@ -94,10 +94,9 @@ def conversations(service, roundNum):
     if service not in services:
         return "Service not found.", 404
 
-    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
-    print sort
+    sort = str(request.args.get('sortby').replace("'", "").replace("*", "")) if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?) ORDER BY {0}".format(str(sort)), [service,roundNum]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?) ORDER BY {0}".format(sort), [service, roundNum]).fetchall()
     print type(conversations)
     for convo in conversations:
     	print convo
