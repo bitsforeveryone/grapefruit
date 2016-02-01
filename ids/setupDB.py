@@ -26,8 +26,14 @@ def setupDB():
 	db.cursor().execute("""CREATE TABLE services (
 		                id integer auto increment unique,
 		                name text, 
-		                port integer)
+		                port integer primay key unique)
 		                """)
+
+	db.cursor().execute("INSERT INTO services (name,port) VALUES ('sheepheap', 3000)")
+	db.cursor().execute("INSERT INTO services (name,port) VALUES ('battleship', 3001)")
+	db.cursor().execute("INSERT INTO services (name,port) VALUES ('banananana', 3002)")
+	db.cursor().execute("INSERT INTO services (name,port) VALUES ('imoutofnames', 3003)")
+	db.cursor().execute("INSERT INTO rounds VALUES (0, datetime('now'))")
 	db.commit()
 
 setupDB()

@@ -40,8 +40,8 @@ def parseReport(filepath):
 		get_db().execute("""INSERT INTO conversations 
 			             (filename, time, s_port, d_port, s_ip, d_ip, round, service) 
 			             VALUES
-			             (?, ?, ?, ?, ?, ?, ?, ?)
-			             """, (fname.replace('staging/','conversations'), convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,"battleship"))
+			             (?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?)) )
+			             """, (fname.replace('staging/','conversations'), convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport']))
 		g.sqlite_db.commit()
 		
 
@@ -82,21 +82,21 @@ def service(service):
 
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?)", [service]).fetchall()
-    return render_template("pages/service.html", service=serviceObj, conversations=conversations)
+    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen = len(conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
     if service not in services:
         return "Service not found.", 404
 
-    service=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    roundNum=get_db().execute("SELECT * FROM rounds ORDER BY round ASC LIMIT 1")
-    return render_template("pages/conversations.html", round=roundNum, service=service, convoNum=convoNum, graphData=graphData)
+    serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?)", [service, roundNum]).fetchall()
+    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen = len(conversations))
 
 @app.route('/debug/report')
 def debugReport():
-	parseReport("staging/report.xml")
-	return str(readReport("staging/report.xml"))
+	parseReport("conversations/report.xml")
+	return str(readReport("conversations/report.xml"))
 
 @app.route('/')
 @app.route('/index.html')

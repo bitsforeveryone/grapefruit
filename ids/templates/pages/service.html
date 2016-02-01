@@ -2,13 +2,13 @@
 
 {% block body %}
     <div class="row">
-        <div class="col-lg-4">
+        <div class="col-lg-8">
             <h1>{{ service[1] }} - Port {{ service[2] }}</h1>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-4">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3> Total Conversations: {{ conversations.length }}</h3>
+                    <h3> Total Conversations: {{ convoLen }}</h3>
                 </div>
             </div>
         </div>
@@ -39,13 +39,14 @@
                             <th> Time </th>
                             <th> SPORT </th>
                             <th> DPORT </th>
+                            <th> PCAP </th>
                         </tr>
                         {% for convo in conversations %}
                           <tr> 
                             <td> {{ convo[1] }} </td> 
                             <td> {{ convo[3] }} </td> 
                             <td> {{ convo[4] }} </td> 
-                            <td> {{ convo[0] }} </td>
+                            <td> <a href="/{{ convo[0] }}"> File </a> </td>
                           </tr>
                         {% endfor %}
                     </table>
