@@ -14,10 +14,10 @@
                 </div>
                 <!-- /.panel-heading -->
                 <div class="panel-body">
-                    <form>
+                    <form action="/regex" method="POST">
                         <div class="form-group">
                             <label for="regex">Regex</label>
-                            <input type="text" class="form-control" id="regex" placeholder="Regex">
+                            <input type="text" class="form-control" name="regex" placeholder="Regex">
                         </div> 
                         <button type="submit" class="btn btn-default">Submit</button>
                     </form>
@@ -25,5 +25,33 @@
                 <!-- /.panel-body -->
             </div>
         </div>
+        <div class="col-md-8">
+           <div class="panel panel-default">
+                <div class="panel-heading">
+                    Alerts
+                </div>
+                <!-- /.panel-heading -->
+                <div class="panel-body">
+                    <table class = "table table-striped">
+                        <tr>
+                            <th> Match </th>
+                            <th> File </th>
+                            <th> Download </th>
+                            <th> Dismiss </th>
+                        </tr>
+                        {% for alert in alerts %}
+                          <tr> 
+                            <td> {{ alert[2] }} </td>
+                            <td> {{ alert[1] }} </td>
+                            <td> <a href="/conversations/{{ alert[1] }}">File</a> </td>
+                            <td> <a href="/alert/dismiss"><button type="button" class="btn btn-info">X</button></a></td>
+                          </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                <!-- /.panel-body -->
+            </div>
+        </div>
+        
     </div>
 {% endblock %}

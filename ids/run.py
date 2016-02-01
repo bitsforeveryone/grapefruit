@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
+import re
+import os
 import json
 import sqlite3
 import subprocess
 import xmltodict
+
 from math import ceil, log10
-from flask import Flask, render_template, send_from_directory, g, request
+from flask import Flask, render_template, send_from_directory, g, request, redirect, url_for
 
 app = Flask(__name__)
 
+CURRENT_ROUND = 1
 CONVO_DIR="conversations/"
 STAGING_DIR="staging/"
 services = []
@@ -39,11 +43,16 @@ def getServices():
 		if (service[0] not in services):
 			services.append(service[0])
 	return res
+def getAlerts():
+	alerts = get_db().execute("SELECT * FROM alerts WHERE seen != 0").fetchall()
+	return alerts
 def readReport(filepath):
 	doc = {}
 	with open(filepath,'r') as fd:
 		doc = xmltodict.parse(fd.read())
 	return doc['dfxml']['configuration'][1]['fileobject']
+
+#FUNCTIONS THAT SHOULD BE CALLED AUTOMATICALLY
 def parseReport(filepath):
 	doc = {}
 	i = 0
@@ -63,7 +72,23 @@ def parseReport(filepath):
 			             (?, ?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?) ) )
 			             """, (fname.replace('staging/','conversations'), convo['filesize'], convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
 		g.sqlite_db.commit()
-		
+def generateAlerts():
+	patterns = []
+	regexs = get_db().execute("SELECT regex FROM regexes WHERE lastRound < ?", [CURRENT_ROUND])
+	for reg in regexs:
+		patterns.append(reg[0])
+
+	for f in os.listdir("conversations/"):
+		for pattern in patterns:
+			patternReg = re.compile(r'{0}'.format(pattern))
+			for match in re.finditer(patternReg, open("conversations/"+f,'r').read()):
+				get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?", [CURRENT_ROUND, pattern])
+				try:
+					get_db().execute("INSERT INTO alerts (filename, regex) VALUES (?,?)", [f,pattern])
+				except sqlite3.IntegrityError:
+					break
+				get_db().commit()
+
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
     return send_from_directory('./templates/bower_components', path)
@@ -108,21 +133,33 @@ def conversations(service, roundNum):
     	print convo
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
+@app.route('/regex', methods=['POST'])
+def addRegex():
+	pattern = request.form['regex']
+	get_db().execute("INSERT INTO regexes (regex) VALUES (?)", [pattern])
+	get_db().commit()
+	return redirect("/debug/alerts")
+
 @app.route('/alerts')
 def alertDashboard():
-	return render_template('pages/alerts.html')
-	
+	return render_template('pages/alerts.html', alerts=getAlerts())
+
 # TODO: REMOVE THIS
 @app.route('/debug/report')
 def debugReport():
 	parseReport("conversations/report.xml")
 	return str(readReport("conversations/report.xml"))
+@app.route('/debug/alerts')
+def alerts():
+	generateAlerts()			
+	return redirect("/alerts")
 
 @app.route('/')
 @app.route('/index.html')
 def index():
 	getServices()
-	return render_template("pages/index.html", serviceNum=len(services))
+	numAlerts = get_db().execute("SELECT count(*) FROM alerts").fetchone()[0]
+	return render_template("pages/index.html", serviceNum=len(services), alertNum=numAlerts)
 	
 if __name__ == '__main__':
     app.run(debug=True)

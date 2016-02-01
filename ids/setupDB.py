@@ -24,21 +24,23 @@ def setupDB():
 		                s_time timestamp unique)
 		                """)
 	db.cursor().execute("""CREATE TABLE services (
-		                id integer auto increment unique,
+		                id integer unique,
 		                name text, 
-		                port integer primay key unique)
+		                port integer primary key unique)
 		                """)
 	db.cursor().execute("""CREATE TABLE alerts (
-						id integer auto increment unique,
-						filename text,
-						regex text,
-						seen boolean,
-						foreign key(filename) references conversations(filename),
-						foreign key(regex) references regexes(regex)
-						""")
+		                id integer primary key,
+		                filename text,
+		                regex text,
+		                seen boolean default false,
+		                foreign key(filename) references conversations(filename),
+		                foreign key(regex) references regexes(regex)
+		                CONSTRAINT unq UNIQUE (filename, regex))
+		                """)
 	db.cursor().execute("""CREATE TABLE regexes (
-						regex text unique,
-						""")
+		                regex text unique,
+		                lastRound integer default 0)
+		                """)
 
 
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('sheepheap', 3000)")
@@ -46,6 +48,7 @@ def setupDB():
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('banananana', 3002)")
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('imoutofnames', 3003)")
 	db.cursor().execute("INSERT INTO rounds VALUES (0, datetime('now'))")
+	db.cursor().execute("INSERT INTO regexes (regex) VALUES ('A')")
 	db.commit()
 
 setupDB()
