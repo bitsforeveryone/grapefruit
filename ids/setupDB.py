@@ -28,6 +28,18 @@ def setupDB():
 		                name text, 
 		                port integer primay key unique)
 		                """)
+	db.cursor().execute("""CREATE TABLE alerts (
+						id integer auto increment unique,
+						filename text,
+						regex text,
+						seen boolean,
+						foreign key(filename) references conversations(filename),
+						foreign key(regex) references regexes(regex)
+						""")
+	db.cursor().execute("""CREATE TABLE regexes (
+						regex text unique,
+						""")
+
 
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('sheepheap', 3000)")
 	db.cursor().execute("INSERT INTO services (name,port) VALUES ('battleship', 3001)")

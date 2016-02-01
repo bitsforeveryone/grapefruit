@@ -18,13 +18,32 @@ def get_db():
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = sqlite3.connect(DATABASE)
     return g.sqlite_db
-
+def getCharts(service, conversations):
+	graph = {}
+	graph['element'] = "morris-bar-chart"
+	graph['data'] = []
+	graph['xkey'] = 'x'
+	graph['ykeys'] = ['y']
+	graph['labels'] = ['Size'] 
+	port = service[1]
+	bins = [0, 0, 0, 0, 0, 0, 0]
+	for convo in conversations:
+		if convo[2] != 0:
+			bins[int(ceil(log10(convo[2]))-1)] += 1
+	for n in range(len(bins)):
+		graph['data'].append({"x": 10**n, "y": bins[n]})
+	return json.dumps(graph)
+def getServices():
+	res = get_db().execute("SELECT name FROM services").fetchall()
+	for service in res:
+		if (service[0] not in services):
+			services.append(service[0])
+	return res
 def readReport(filepath):
 	doc = {}
 	with open(filepath,'r') as fd:
 		doc = xmltodict.parse(fd.read())
 	return doc['dfxml']['configuration'][1]['fileobject']
-
 def parseReport(filepath):
 	doc = {}
 	i = 0
@@ -45,8 +64,6 @@ def parseReport(filepath):
 			             """, (fname.replace('staging/','conversations'), convo['filesize'], convo['tcpflow']['@startime'], convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'], convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
 		g.sqlite_db.commit()
 		
-
-
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
     return send_from_directory('./templates/bower_components', path)
@@ -63,29 +80,6 @@ def send_dist(path):
 def send_convo(path):
     return send_from_directory('./conversations', path)
 
-def getCharts(service, conversations):
-	graph = {}
-	graph['element'] = "morris-bar-chart"
-	graph['data'] = []
-	graph['xkey'] = 'x'
-	graph['ykeys'] = ['y']
-	graph['labels'] = ['Size'] 
-	port = service[1]
-	bins = [0, 0, 0, 0, 0, 0, 0]
-	for convo in conversations:
-		if convo[2] != 0:
-			bins[int(ceil(log10(convo[2]))-1)] += 1
-	for n in range(len(bins)):
-		graph['data'].append({"x": 10**n, "y": bins[n]})
-	return json.dumps(graph)
-
-def getServices():
-	res = get_db().execute("SELECT name FROM services").fetchall()
-	for service in res:
-		if (service[0] not in services):
-			services.append(service[0])
-	return res
-
 @app.route('/services')
 def serviceList():
 	services = getServices()
@@ -97,12 +91,8 @@ def service(service):
         return "Service not found.", 404
 
     sort = request.args.get('sortby') if request.args.get('sortby') else "time"
-    print sort
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) ORDER BY {0}".format(sort), [service]).fetchall()
-    print type(conversations)
-    for convo in conversations:
-    	print convo
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
@@ -116,8 +106,13 @@ def conversations(service, roundNum):
     print type(conversations)
     for convo in conversations:
     	print convo
-    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations))
+    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
+@app.route('/alerts')
+def alertDashboard():
+	return render_template('pages/alerts.html')
+	
+# TODO: REMOVE THIS
 @app.route('/debug/report')
 def debugReport():
 	parseReport("conversations/report.xml")
