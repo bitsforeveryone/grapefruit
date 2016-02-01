@@ -3,7 +3,7 @@
 {% block body %}
     <div class="row">
         <div class="col-lg-4">
-            <h1>{{ service[0] }} - Port {{ service[1] }}</h1>
+            <h1>{{ service[1] }} - Port {{ service[2] }}</h1>
         </div>
         <div class="col-md-2">
             <div class="panel panel-default">
@@ -27,6 +27,18 @@
             </div>
             <!-- /.panel -->
         </div>
+        <div class="col-lg-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Conversation Table
+                </div>
+                <!-- /.panel-heading -->
+                <div class="panel-body">
+                    {% for convo in conversations %}
+                      {{ convo }}
+                    {% endfor %}
+                </div>
+            </div>
     </div>
 
     <script>
