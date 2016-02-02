@@ -50,10 +50,7 @@ def parseReport(filepath):
 def addRound():
 	db = sqlite3.connect('db.db')
 	lastRound = db.cursor().execute("SELECT MAX(num) FROM ROUNDS").fetchone()
-	try:
-		currentRound = lastRound + 1
-	except TypeError:
-		currentRound = 1
+	currentRound = lastRound[0] + 1
 	db.cursor().execute("INSERT INTO rounds (num,s_time) VALUES (?,datetime('now'))", [currentRound])
 	db.commit()
 

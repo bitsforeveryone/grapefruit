@@ -51,11 +51,7 @@ sqlite3 $DB "CREATE TABLE IF NOT EXISTS regexes (
 
 if [ -z $ROUND ]; then
 	ROUND=$(sqlite3 $DB "SELECT MAX(num) FROM rounds")
-	if [ -z $ROUND ]; then
-		ROUND = 1
-	else
-		ROUND+=1
-	fi
+	ROUND+=1
 fi
 
 if [ -z $FILE ]; then
