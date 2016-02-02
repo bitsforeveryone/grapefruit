@@ -98,9 +98,9 @@ def service(service):
     if service not in services:
         return "Service not found.", 404
 
-    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
+#    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) ORDER BY {0}".format(sort), [service]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) ORDER BY time", [service]).fetchall()
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
@@ -108,9 +108,9 @@ def conversations(service, roundNum):
     if service not in services:
         return "Service not found.", 404
 
-    sort = str(request.args.get('sortby').replace("'", "").replace("*", "")) if request.args.get('sortby') else "time"
+#    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?) ORDER BY {0}".format(sort), [service, roundNum]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?) ORDER BY time", [service, roundNum]).fetchall()
     print type(conversations)
     for convo in conversations:
     	print convo
