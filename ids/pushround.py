@@ -37,7 +37,7 @@ def parseReport(filepath):
 		try:
 			db.cursor().execute("""INSERT INTO conversations 
 			                (filename, size, time, s_port, d_port, s_ip, d_ip, round, service) VALUES         
-			                (?, ?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?)) )""", 
+			                (?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM services WHERE port = (?) OR port = (?)) )""", 
 			                (fname, convo['filesize'], convo['tcpflow']['@startime'], 
 			                convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'],
 			                convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
