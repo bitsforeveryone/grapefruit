@@ -20,10 +20,11 @@ def parseReport(filepath):
 	doc = doc['dfxml']['configuration'][1]['fileobject']
 	fname = ""
 	for convo in doc:
-		if convo['tcpflow']['@dstport'] not in SERVICES and int(convo['tcpflow']['@dstport']) < 10000:
-			SERVICES[convo['tcpflow']['@dstport']]="svc_{0}".format(convo['tcpflow']['@dstport'])
+		svc_port = min(int(convo['tcpflow']['@dstport']), int(convo['tcpflow']['@srcport']))
+		if svc_port not in SERVICES:
+			SERVICES[svc_port]="svc_{0}".format(svc_port)
 			try:
-				db.cursor().execute("INSERT INTO services (name, port) VALUES (?, ?)", [SERVICES[convo['tcpflow']['@dstport']], convo['tcpflow']['@dstport']])
+				db.cursor().execute("INSERT INTO services (name, port) VALUES (?, ?)", [SERVICES[svc_port],svc_port])
 				db.commit()
 			except sqlite3.IntegrityError:
 				print "Already in db"
@@ -37,10 +38,10 @@ def parseReport(filepath):
 		try:
 			db.cursor().execute("""INSERT INTO conversations 
 			                (filename, size, time, s_port, d_port, s_ip, d_ip, round, service) VALUES         
-			                (?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM services WHERE port = (?) OR port = (?)) )""", 
+			                (?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM services WHERE port = (?)) )""", 
 			                (fname, convo['filesize'], convo['tcpflow']['@startime'], 
 			                convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'],
-			                convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
+			                convo['tcpflow']['@dst_ipn'],0,svc_port) )
 			db.commit()
 		except sqlite3.IntegrityError:
 			print "Already in db"

@@ -29,7 +29,7 @@ def getCharts(service, conversations):
 	graph['ykeys'] = ['y']
 	graph['labels'] = ['Size'] 
 	port = service[1]
-	bins = [0, 0, 0, 0, 0, 0, 0]
+	bins = [0]*10
 	for convo in conversations:
 		if convo[2] != 0:
 			bins[int(ceil(log10(convo[2]))-1)] += 1
@@ -100,7 +100,7 @@ def service(service):
 
     sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) ORDER BY {0}".format(sort), [service]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) ORDER BY {0}".format(sort), [service]).fetchall()
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')

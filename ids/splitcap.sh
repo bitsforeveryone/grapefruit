@@ -17,7 +17,7 @@ fi
 mkdir -p $DIR/conversations/$ROUND
 mkdir -p $DIR/staging
 
-tcpflow -o $DIR/conversations/$ROUND -T %T_%C_%a-%b_%A-%B -l $FILE
+tcpflow -o conversations/$ROUND -T %T_%C_%a-%b_%A-%B -l $FILE
 
 sqlite3 $DB "CREATE TABLE IF NOT EXISTS conversations (
 		         filename text,
@@ -59,4 +59,4 @@ sqlite3 $DB "CREATE TABLE IF NOT EXISTS regexes (
 		         regex text unique,
 		         lastRound integer default 0);"
 
-$_pushround $DIR/conversations/$ROUND/"report.xml"
+$_pushround conversations/$ROUND/"report.xml"
