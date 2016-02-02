@@ -34,7 +34,8 @@
                 </div>
                 <!-- /.panel-heading -->
                 <div class="panel-body">
-                    <table class = "table table-striped sortable">
+                    <table id="convoTable" class = "table table-striped">
+                        <thead> 
                         <tr>
                             <th>Time</th>
                             <th>Size</th>
@@ -43,6 +44,7 @@
                             <th>Round</th>
                             <th>PCAP</th>
                         </tr>
+                        </thead> 
                         {% for convo in conversations %}
                           <tr> 
                             <td> {{ convo[1] }} </td> 
@@ -59,7 +61,12 @@
         </div>
     </div>
 
+    <script type="text/javascript" src="/js/jquery-latest.js"></script> 
+    <script type="text/javascript" src="/js/jquery.tablesorter.js"></script> 
     <script>
-        Morris.Bar({{ graphData|safe }});
+        $(document).ready(function() {    
+            $("#convoTable").tablesorter(); 
+            Morris.Bar({{ graphData|safe }});
+        }); 
     </script>
 {% endblock %}
