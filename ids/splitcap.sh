@@ -6,19 +6,6 @@ DIR=$(pwd)
 DB='db.db'
 _pushround=$DIR/pushround.py
 
-if [ -z $ROUND ]; then
-	ROUND='0'
-fi
-
-if [ -z $FILE ]; then
-	FILE=$DIR/"staging/*.pcap*"
-fi
-
-mkdir -p $DIR/conversations/$ROUND
-mkdir -p $DIR/staging
-
-tcpflow -o conversations/$ROUND -T %T_%C_%a-%b_%A-%B -l $FILE
-
 sqlite3 $DB "CREATE TABLE IF NOT EXISTS conversations (
 		         filename text,
 		         time timestamp primary key,
@@ -58,5 +45,20 @@ sqlite3 $DB "CREATE TABLE IF NOT EXISTS alerts (
 sqlite3 $DB "CREATE TABLE IF NOT EXISTS regexes (
 		         regex text unique,
 		         lastRound integer default 0);"
+
+
+if [ -z $ROUND ]; then
+	ROUND=$(sqlite3 $DB "SELECT MAX(num) FROM rounds")
+	ROUND+=1
+fi
+
+if [ -z $FILE ]; then
+	FILE=$DIR/"staging/*.pcap*"
+fi
+
+mkdir -p $DIR/conversations/$ROUND
+mkdir -p $DIR/staging
+
+tcpflow -o conversations/$ROUND -T %T_%C_%a-%b_%A-%B -l $FILE
 
 $_pushround conversations/$ROUND/"report.xml"

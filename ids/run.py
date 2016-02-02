@@ -110,7 +110,7 @@ def conversations(service, roundNum):
 
 #    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
-    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (?) AND round = (?) ORDER BY time", [service, roundNum]).fetchall()
+    conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) AND round = (?) ORDER BY time", [service, roundNum]).fetchall()
     print type(conversations)
     for convo in conversations:
     	print convo
