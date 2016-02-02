@@ -22,7 +22,13 @@ def parseReport(filepath):
 	for convo in doc:
 		if convo['tcpflow']['@dstport'] not in SERVICES and int(convo['tcpflow']['@dstport']) < 10000:
 			SERVICES[convo['tcpflow']['@dstport']]="svc_{0}".format(convo['tcpflow']['@dstport'])
-			db.cursor().execute("INSERT INTO services (name, port) VALUES (?, ?)", [SERVICES[convo['tcpflow']['@dstport']], convo['tcpflow']['@dstport']])
+			try:
+				db.cursor().execute("INSERT INTO services (name, port) VALUES (?, ?)", [SERVICES[convo['tcpflow']['@dstport']], convo['tcpflow']['@dstport']])
+				db.commit()
+			except sqlite3.IntegrityError:
+				print "Already in db"
+				pass
+
 		try:
 			fname = convo['filename']
 		except KeyError:
