@@ -9,7 +9,7 @@ from flask import Flask, render_template, send_from_directory, g, request, redir
 
 app = Flask(__name__)
 
-DEBUG=False
+DEBUG=True
 
 CURRENT_ROUND = 1
 CONVO_DIR="conversations/"
@@ -48,23 +48,29 @@ def getAlerts():
 
 def generateAlerts():
 	patterns = []
+	files = []
 	regexs = get_db().execute("SELECT regex FROM regexes WHERE lastRound < ?", 
-	                         [CURRENT_ROUND])
+	                         [CURRENT_ROUND]).fetchall()
 	for reg in regexs:
 		patterns.append(reg[0])
 
-	for f in os.listdir("conversations/"):
+	conversations = get_db().execute("SELECT filename FROM conversations").fetchall()
+	for conv in conversations:
+		files.append(conv[0])
+
+	for f in files:
 		for pattern in patterns:
 			patternReg = re.compile(r'{0}'.format(pattern))
-			for match in re.finditer(patternReg, open("conversations/"+f,'r').read()):
-				get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?",
-				                 [CURRENT_ROUND, pattern])
+			get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?",
+				                [CURRENT_ROUND, pattern])
+
+			for match in re.finditer(patternReg, open(f,'r').read()):
 				try:
 					get_db().execute("INSERT INTO alerts (filename, regex, round) VALUES (?,?,?)",
 					                 [f,pattern, CURRENT_ROUND-1])
 				except sqlite3.IntegrityError:
 					break
-				get_db().commit()
+			get_db().commit()
 
 @app.route('/bower_components/<path:path>')
 def send_bower(path):
@@ -151,4 +157,4 @@ def index():
 	return render_template("pages/index.html", serviceNum=len(services), alertNum=numAlerts)
 	
 if __name__ == '__main__':
-    app.run(debug=DEBUG, host='0.0.0.0')
+    app.run(debug=DEBUG,host="0.0.0.0",port=80)

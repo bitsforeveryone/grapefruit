@@ -9,7 +9,7 @@ import argparse
 
 CONVO_DIR="conversations/"
 STAGING_DIR="staging/"
-services = []
+SERVICES = {}
 
 def parseReport(filepath):
 	doc = {}
@@ -20,6 +20,9 @@ def parseReport(filepath):
 	doc = doc['dfxml']['configuration'][1]['fileobject']
 	fname = ""
 	for convo in doc:
+		if convo['tcpflow']['@dstport'] not in SERVICES and int(convo['tcpflow']['@dstport']) < 10000:
+			SERVICES[convo['tcpflow']['@dstport']]="svc_{0}".format(convo['tcpflow']['@dstport'])
+			db.cursor().execute("INSERT INTO services (name, port) VALUES (?, ?)", [SERVICES[convo['tcpflow']['@dstport']], convo['tcpflow']['@dstport']])
 		try:
 			fname = convo['filename']
 		except KeyError:
@@ -28,7 +31,7 @@ def parseReport(filepath):
 		try:
 			db.cursor().execute("""INSERT INTO conversations 
 			                (filename, size, time, s_port, d_port, s_ip, d_ip, round, service) VALUES         
-			                (?, ?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?) ) )""", 
+			                (?, ?, ?, ?, ?, ?, ?, ?, (SELECT name FROM services WHERE port = (?) OR port = (?)) )""", 
 			                (fname, convo['filesize'], convo['tcpflow']['@startime'], 
 			                convo['tcpflow']['@srcport'], convo['tcpflow']['@dstport'], convo['tcpflow']['@src_ipn'],
 			                convo['tcpflow']['@dst_ipn'],0,convo['tcpflow']['@dstport'],convo['tcpflow']['@srcport']))
