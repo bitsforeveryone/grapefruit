@@ -35,14 +35,15 @@ sqlite3 $DB "CREATE TABLE IF NOT EXISTS services (
 
 sqlite3 $DB "CREATE TABLE IF NOT EXISTS alerts (
 		         id integer primary key,
-		         filename text,
+		         timePassed timestamp,
+		         timeFound timestamp,
 		         regex text,
 		         seen integer default 0,
 		         round integer,
-		         foreign key(filename) references conversations(filename),
+		         foreign key(timePassed) references conversations(time),
 		         foreign key(regex) references regexes(regex)
 		         foreign key(round) references rounds(num)
-		         CONSTRAINT unq UNIQUE (filename, regex));"
+		         CONSTRAINT unq UNIQUE (timePassed, regex));"
 
 sqlite3 $DB "CREATE TABLE IF NOT EXISTS regexes (
 		         regex text unique,

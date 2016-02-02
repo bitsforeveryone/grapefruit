@@ -51,6 +51,7 @@ def addRound():
 	db = sqlite3.connect('db.db')
 	lastRound = db.cursor().execute("SELECT MAX(num) FROM ROUNDS").fetchone()
 	currentRound = lastRound[0] + 1
+	print currentRound
 	db.cursor().execute("INSERT INTO rounds (num,s_time) VALUES (?,datetime('now'))", [currentRound])
 	db.commit()
 

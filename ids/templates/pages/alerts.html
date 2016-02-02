@@ -34,7 +34,8 @@
                 <div class="panel-body">
                     <table class = "table table-striped">
                         <tr>
-                            <th> Round </th>
+                            <th> Last Round Checked </th>
+                            <th> Round Detected </th>
                             <th> Match </th>
                             <th> File </th>
                             <th> Download </th>
@@ -42,10 +43,11 @@
                         </tr>
                         {% for alert in alerts %}
                           <tr> 
-                            <td> {{ alert[4]}}
-                            <td> {{ alert[2] }} </td>
-                            <td> {{ alert[1] }} </td>
-                            <td> <a href="/conversations/{{ alert[1] }}">File</a> </td>
+                            <td> {{ alert[5]}} </td>
+                            <td> {{ alert[16]}} </td>
+                            <td> {{ alert[3] }} </td>
+                            <td> {{ alert[6] }} </td>
+                            <td> <a href="/{{ alert[6] }}">File</a> </td>
                             <td> <a href="/alerts/dismiss/{{ alert[0] }}"><button type="button" class="btn btn-info">X</button></a></td>
                           </tr>
                         {% endfor %}

@@ -41,15 +41,15 @@ def getServices():
 		if (service[0] not in services):
 			services.append(service[0])
 	return res
+
 def getAlerts():
-	alerts = get_db().execute("SELECT * FROM alerts WHERE seen != 1").fetchall()
+	alerts = get_db().execute("SELECT * FROM alerts as a JOIN conversations as c ON a.timePassed = c.time WHERE seen != 1").fetchall()
 	return alerts
 
 def generateAlerts():
 	patterns = []
 	files = []
-	regexs = get_db().execute("SELECT regex FROM regexes WHERE lastRound < ?", 
-	                         [CURRENT_ROUND]).fetchall()
+	regexs = get_db().execute("SELECT regex FROM regexes WHERE lastRound < (SELECT MAX(num) FROM rounds)").fetchall()
 	for reg in regexs:
 		patterns.append(reg[0])
 
@@ -60,13 +60,13 @@ def generateAlerts():
 	for f in files:
 		for pattern in patterns:
 			patternReg = re.compile(r'{0}'.format(pattern))
-			get_db().execute("UPDATE regexes SET lastRound = ? WHERE regex = ?",
-				                [CURRENT_ROUND, pattern])
+			get_db().execute("UPDATE regexes SET lastRound = (SELECT MAX(num) FROM rounds) WHERE regex = ?",
+				                [pattern])
 
 			for match in re.finditer(patternReg, open(f,'r').read()):
 				try:
-					get_db().execute("INSERT INTO alerts (filename, regex, round) VALUES (?,?,?)",
-					                 [f,pattern, CURRENT_ROUND-1])
+					get_db().execute("INSERT INTO alerts (timeFound, timePassed, regex, round) VALUES (datetime('now'),(SELECT time FROM conversations WHERE filename = ?),?,(SELECT MAX(num) FROM rounds))",
+					                 [f,pattern])
 				except sqlite3.IntegrityError:
 					break
 			get_db().commit()
