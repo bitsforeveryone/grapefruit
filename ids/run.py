@@ -11,7 +11,6 @@ app = Flask(__name__)
 
 DEBUG=True
 
-CURRENT_ROUND = 1
 CONVO_DIR="conversations/"
 STAGING_DIR="staging/"
 services = []

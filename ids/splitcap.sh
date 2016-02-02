@@ -26,6 +26,8 @@ sqlite3 $DB "CREATE TABLE IF NOT EXISTS rounds (
 		         num integer primary key unique, 
 		         s_time timestamp unique);"
 
+sqlite3 $DB "INSERT INTO rounds (num, s_time) VALUES (0, datetime('now'))"
+
 sqlite3 $DB "CREATE TABLE IF NOT EXISTS services (
 		         id integer primary key unique,
 		         name text unique, 
@@ -49,7 +51,11 @@ sqlite3 $DB "CREATE TABLE IF NOT EXISTS regexes (
 
 if [ -z $ROUND ]; then
 	ROUND=$(sqlite3 $DB "SELECT MAX(num) FROM rounds")
-	ROUND+=1
+	if [ -z $ROUND ]; then
+		ROUND = 1
+	else
+		ROUND+=1
+	fi
 fi
 
 if [ -z $FILE ]; then
