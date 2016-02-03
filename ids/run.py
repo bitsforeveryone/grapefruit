@@ -32,6 +32,10 @@ def getCharts(service, conversations):
 		graph['data'].append({"x": 10**n, "y": bins[n]})
 	return json.dumps(graph)
 
+def getNumAlerts():
+	numAlerts = get_db().execute("SELECT count(*) FROM alerts WHERE seen != 1").fetchone()[0]
+	return numAlerts
+
 def getNumServices():
 	numServices = get_db().execute("SELECT count(*) FROM services").fetchone()[0]
 	return numServices
@@ -114,6 +118,10 @@ def conversations(service, roundNum):
     	print convo
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
+@app.route('/rounds')
+def roundList():
+	return render_template("pages/rounds.html", serviceNum=getNumServices(), alertNum=getNumAlerts())
+
 @app.route('/regex', methods=['POST'])
 def addRegex():
 	pattern = request.form['regex']
@@ -135,7 +143,7 @@ def clearAlerts():
 
 @app.route('/alerts')
 def alertDashboard():
-	return render_template('pages/alerts.html', alerts=getAlerts(), serviceNum=getNumServices())
+	return render_template('pages/alerts.html', serviceNum=getNumServices(), alertNum=getNumAlerts(), alerts=getAlerts())
 
 # TODO: REMOVE THIS
 @app.route('/debug/report')
@@ -150,8 +158,7 @@ def alerts():
 @app.route('/')
 @app.route('/index.html')
 def index():
-	numAlerts = get_db().execute("SELECT count(*) FROM alerts WHERE seen != 1").fetchone()[0]
-	return render_template("pages/index.html", serviceNum=getNumServices(), alertNum=numAlerts)
+	return render_template("pages/index.html", serviceNum=getNumServices(), alertNum=getNumAlerts())
 	
 if __name__ == '__main__':
     app.run(debug=DEBUG,host="0.0.0.0",port=80)
