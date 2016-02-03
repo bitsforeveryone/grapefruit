@@ -3,79 +3,124 @@
 
 <head>
 
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="description" content="">
+		<meta name="author" content="">
 
-    <title>Grapefruit IDS</title>
+		<title>Grapefruit IDS</title>
 
-    <!-- Bootstrap Core CSS -->
-    <link href="/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+		<!-- Bootstrap Core CSS -->
+		<link href="/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- MetisMenu CSS -->
-    <link href="/bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
+		<!-- MetisMenu CSS -->
+		<link href="/bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
 
-    <!-- Timeline CSS -->
-    <link href="/dist/css/timeline.css" rel="stylesheet">
+		<!-- Timeline CSS -->
+		<link href="/dist/css/timeline.css" rel="stylesheet">
 
-    <!-- Custom CSS -->
-    <link href="/dist/css/sb-admin-2.css" rel="stylesheet">
+		<!-- Custom CSS -->
+		<link href="/dist/css/sb-admin-2.css" rel="stylesheet">
 
-    <!-- Morris Charts CSS -->
-    <link href="/bower_components/morrisjs/morris.css" rel="stylesheet">
+		<!-- Morris Charts CSS -->
+		<link href="/bower_components/morrisjs/morris.css" rel="stylesheet">
 
-    <!-- Custom Fonts -->
-    <link href="/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+		<!-- Custom Fonts -->
+		<link href="/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
-    <!-- jQuery -->
-    <script src="/bower_components/jquery/dist/jquery.min.js"></script>
+		<!-- jQuery -->
+		<script src="/bower_components/jquery/dist/jquery.min.js"></script>
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+		<!-- Bootstrap Core JavaScript -->
+		<script src="/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 
-    <!-- Metis Menu Plugin JavaScript -->
-    <script src="/bower_components/metisMenu/dist/metisMenu.min.js"></script>
+		<!-- Metis Menu Plugin JavaScript -->
+		<script src="/bower_components/metisMenu/dist/metisMenu.min.js"></script>
 
-    <!-- Morris Charts JavaScript -->
-    <script src="/bower_components/raphael/raphael-min.js"></script>
-    <script src="/bower_components/morrisjs/morris.min.js"></script>
+		<!-- Morris Charts JavaScript -->
+		<script src="/bower_components/raphael/raphael-min.js"></script>
+		<script src="/bower_components/morrisjs/morris.min.js"></script>
 
-    <!-- Custom Theme JavaScript -->
-    <script src="/dist/js/sb-admin-2.js"></script>
-    
-		<!-- Sortable tables -->
-    <script src="/js/sorttable.js"></script>
-
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+		<!-- Custom Theme JavaScript -->
+		<script src="/dist/js/sb-admin-2.js"></script>
+		
+		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+				<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+				<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
 
 </head>
 
 <body>
 
-    <div id="wrapper">
-        <div id="page-wrapper" style="margin:0px">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header"><a href = "/">Grapefruit IDS</a></h1>
-                </div>
-                <!-- /.col-lg-12 -->
-            </div>
-            <!-- /.row -->
-            {% block body %} {% endblock %}
-        </div>
-        <!-- /#page-wrapper -->
+<div id="wrapper">
+	<div id="page-wrapper" style="margin:0px">
+		<div class="row page-header">
+			<div class="col-lg-6">
+				<h1><a href = "/">Grapefruit IDS</a></h1>
+			</div>
+			<div class="col-lg-2 col-md-6">
+				<div class="panel panel-primary">
+					<div class="panel-heading">
+						<div class="row">
+							<a href=# style="color:white">
+								<div class="col-xs-3">
+									<i class="fa fa-clock-o fa-5x"></i>
+								</div>
+								<div class="col-xs-9 text-right">
+									<div class="huge">{% if roundNum %}  {{ roundNum }} {% else %} 0 {% endif %}</div>
+									<div>Rounds!</div>
+								</div>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-2 col-md-6">
+				<div class="panel panel-green">
+					<div class="panel-heading">
+						<div class="row">
+							<a href="/services" style="color:white">
+								<div class="col-xs-3">
+									<i class="fa fa-cogs fa-5x"></i>
+								</div>
+								<div class="col-xs-9 text-right">
+									<div class="huge">{% if serviceNum %}  {{ serviceNum }} {% else %} 0 {% endif %}</div>
+									<div>Services!</div>
+								</div>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-2 col-md-6">
+				<div class="panel panel-red">
+					<div class="panel-heading">
+						<div class="row">
+							<a href="/alerts" style="color:white">
+								<div class="col-xs-3">
+									<i class="fa fa-exclamation-triangle fa-5x"></i>
+								</div>
+								<div class="col-xs-9 text-right">
+									<div class="huge">{% if alertNum %}  {{ alertNum }} {% else %} 0 {% endif %}</div>
+									<div>Alerts!</div>
+								</div>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	<!-- /.row -->
+	{% block body %} {% endblock %}
+	</div>
+	<!-- /#page-wrapper -->
 
-    </div>
-    <!-- /#wrapper -->
-
-    
+</div>
+<!-- /#wrapper -->
 
 </body>
 

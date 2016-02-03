@@ -10,12 +10,8 @@ from flask import Flask, render_template, send_from_directory, g, request, redir
 app = Flask(__name__)
 
 DEBUG=True
-
-CONVO_DIR="conversations/"
-STAGING_DIR="staging/"
-services = []
-
 DATABASE = 'db.db'
+
 def get_db():
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = sqlite3.connect(DATABASE)
@@ -36,10 +32,8 @@ def getCharts(service, conversations):
 		graph['data'].append({"x": 10**n, "y": bins[n]})
 	return json.dumps(graph)
 def getServices():
-	res = get_db().execute("SELECT name FROM services").fetchall()
-	for service in res:
-		if (service[0] not in services):
-			services.append(service[0])
+	res = get_db().execute("SELECT * FROM services").fetchall()
+	print len(res)
 	return res
 
 def getAlerts():
@@ -83,31 +77,31 @@ def send_js(path):
 def send_dist(path):
     return send_from_directory('./templates/dist', path)
 
-@app.route('/conversations/<path:path>')
+@app.route('/data/conversations/<path:path>')
 def send_convo(path):
-    return send_from_directory('./conversations', path)
+    return send_from_directory('./data/conversations', path)
+
+@app.route('/rename', methods=['POST'])
+def rename():
+	cur = request.form['cur']
+	new = request.form['new']
+	get_db().execute("UPDATE services SET name=? WHERE name=?", [new,cur])
+	get_db().commit()
+	return redirect("/services/")
 
 @app.route('/services')
 def serviceList():
 	services = getServices()
-	return render_template("pages/services.html", services=services)
+	return render_template("pages/services.html", services=services, serviceNum=len(services))
 
 @app.route('/services/<string:service>')
 def service(service):
-    if service not in services:
-        return "Service not found.", 404
-
-#    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) ORDER BY time", [service]).fetchall()
     return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
-    if service not in services:
-        return "Service not found.", 404
-
-#    sort = request.args.get('sortby') if request.args.get('sortby') else "time"
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) AND round = (?) ORDER BY time", [service, roundNum]).fetchall()
     print type(conversations)
@@ -151,9 +145,9 @@ def alerts():
 @app.route('/')
 @app.route('/index.html')
 def index():
-	getServices()
 	numAlerts = get_db().execute("SELECT count(*) FROM alerts WHERE seen != 1").fetchone()[0]
-	return render_template("pages/index.html", serviceNum=len(services), alertNum=numAlerts)
+	numServices = get_db().execute("SELECT count(*) FROM services").fetchone()[0]
+	return render_template("pages/index.html", serviceNum=numServices, alertNum=numAlerts)
 	
 if __name__ == '__main__':
     app.run(debug=DEBUG,host="0.0.0.0",port=80)
