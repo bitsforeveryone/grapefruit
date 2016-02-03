@@ -16,9 +16,15 @@
 						<thead>
 							<tr>
 								<th>Round #</th>
-								<th>Conversations</th>
+								<th>Number of Conversations</th>
 							</tr>
 						</thead> 
+						{% for round in rounds %}
+							<tr>
+								<td> {{ round[0] }} </td>
+								<td> {{ round[1] }} </td>
+							</tr>
+						{% endfor %}
 					</table>
 				</div>
 			</div>

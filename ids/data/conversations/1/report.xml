@@ -27,7 +27,7 @@
       <arch>x86_64</arch>
       <command_line>tcpflow -o data/conversations/1 -T %T_%C_%a-%b_%A-%B -r data/testdata.pcap</command_line>
       <uid>1000</uid>
-      <start_time>2016-02-03T04:39:44Z</start_time>
+      <start_time>2016-02-03T16:23:19Z</start_time>
     </execution_environment>
   </creator>
   <configuration>
@@ -69,14 +69,14 @@
   <flow_map_size>0</flow_map_size>
   <total_packets>47</total_packets>
   <rusage>
-    <utime>0.020000</utime>
-    <stime>0.000000</stime>
-    <maxrss>8940</maxrss>
-    <minflt>1137</minflt>
-    <majflt>0</majflt>
+    <utime>0.012000</utime>
+    <stime>0.004000</stime>
+    <maxrss>8968</maxrss>
+    <minflt>1134</minflt>
+    <majflt>7</majflt>
     <nswap>0</nswap>
-    <inblock>0</inblock>
+    <inblock>1816</inblock>
     <oublock>56</oublock>
-    <clocktime>0.001190</clocktime>
+    <clocktime>0.000875</clocktime>
   </rusage>
 </dfxml>

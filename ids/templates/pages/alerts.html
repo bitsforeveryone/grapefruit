@@ -37,7 +37,6 @@
                             <th> Last Round Checked </th>
                             <th> Round Detected </th>
                             <th> Match </th>
-                            <th> File </th>
                             <th> Download </th>
                             <th> Dismiss </th>
                         </tr>
@@ -46,12 +45,11 @@
                             <td> {{ alert[5]}} </td>
                             <td> {{ alert[16]}} </td>
                             <td> {{ alert[3] }} </td>
-                            <td> {{ alert[6] }} </td>
                             <td> <a href="/{{ alert[6] }}">File</a> </td>
                             <td> <a href="/alerts/dismiss/{{ alert[0] }}"><button type="button" class="btn btn-info">X</button></a></td>
                           </tr>
                         {% endfor %}
-                        <tr> <td></td><td> <a href="/alerts/clear">Display all alerts</a></td><td></td><td></td></tr>
+                        <tr><td><a href="/alerts/clear">Display all alerts</a></td></tr>
                     </table>
                 </div>
                 <!-- /.panel-body -->

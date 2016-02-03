@@ -40,6 +40,10 @@ def getNumServices():
 	numServices = get_db().execute("SELECT count(*) FROM services").fetchone()[0]
 	return numServices
 
+def getNumRounds():
+	numRounds = get_db().execute("SELECT count(*) FROM rounds").fetchone()[0]
+	return numRounds
+
 def getServices():
 	res = get_db().execute("SELECT * FROM services").fetchall()
 	print len(res)
@@ -101,13 +105,13 @@ def rename():
 @app.route('/services')
 def serviceList():
 	services = getServices()
-	return render_template("pages/services.html", serviceNum=getNumServices(), alertNum=getNumAlerts(), services=services)
+	return render_template("pages/services.html", roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), services=services)
 
 @app.route('/services/<string:service>')
 def service(service):
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) ORDER BY time", [service]).fetchall()
-    return render_template("pages/service.html", serviceNum=getNumServices(), alertNum=getNumAlerts(), service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
+    return render_template("pages/service.html", roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
@@ -116,11 +120,12 @@ def conversations(service, roundNum):
     print type(conversations)
     for convo in conversations:
     	print convo
-    return render_template("pages/service.html", serviceNum=getNumServices(), alertNum=getNumAlerts(), service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
+    return render_template("pages/service.html", roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/rounds')
 def roundList():
-	return render_template("pages/rounds.html", serviceNum=getNumServices(), alertNum=getNumAlerts())
+	rounds = get_db().execute("SELECT r.num, count(*) FROM rounds as r JOIN conversations as c ON r.num = c.round")
+	return render_template("pages/rounds.html", roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), rounds=rounds)
 
 @app.route('/regex', methods=['POST'])
 def addRegex():
@@ -143,7 +148,7 @@ def clearAlerts():
 
 @app.route('/alerts')
 def alertDashboard():
-	return render_template('pages/alerts.html', serviceNum=getNumServices(), alertNum=getNumAlerts(), alerts=getAlerts())
+	return render_template('pages/alerts.html', roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), alerts=getAlerts())
 
 # TODO: REMOVE THIS
 @app.route('/debug/report')
@@ -158,7 +163,7 @@ def alerts():
 @app.route('/')
 @app.route('/index.html')
 def index():
-	return render_template("pages/index.html", serviceNum=getNumServices(), alertNum=getNumAlerts())
+	return render_template("pages/index.html", roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts())
 	
 if __name__ == '__main__':
     app.run(debug=DEBUG,host="0.0.0.0",port=80)
