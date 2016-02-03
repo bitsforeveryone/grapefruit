@@ -36,14 +36,16 @@
                         <tr>
                             <th> Last Round Checked </th>
                             <th> Round Detected </th>
+                            <th> Destination Service </th>
                             <th> Match </th>
                             <th> Download </th>
                             <th> Dismiss </th>
                         </tr>
                         {% for alert in alerts %}
                           <tr> 
-                            <td> {{ alert[5]}} </td>
-                            <td> {{ alert[16]}} </td>
+                            <td> {{ alert[5] }} </td>
+                            <td> {{ alert[16] }} </td>
+                            <td> {{ alert[19] }} </td>
                             <td> {{ alert[3] }} </td>
                             <td> <a href="/{{ alert[6] }}">File</a> </td>
                             <td> <a href="/alerts/dismiss/{{ alert[0] }}"><button type="button" class="btn btn-info">X</button></a></td>

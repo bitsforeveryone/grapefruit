@@ -50,7 +50,7 @@ def getServices():
 	return res
 
 def getAlerts():
-	alerts = get_db().execute("SELECT * FROM alerts as a JOIN conversations as c ON a.timePassed = c.time WHERE seen != 1").fetchall()
+	alerts = get_db().execute("SELECT * FROM alerts as a JOIN conversations as c ON a.timePassed = c.time JOIN services as s ON c.service=s.id WHERE seen != 1").fetchall()
 	return alerts
 
 def generateAlerts():
