@@ -96,18 +96,18 @@ def rename():
 	new = request.form['new']
 	get_db().execute("UPDATE services SET name=? WHERE name=?", [new,cur])
 	get_db().commit()
-	return redirect("/services/")
+	return redirect("/services")
 
 @app.route('/services')
 def serviceList():
 	services = getServices()
-	return render_template("pages/services.html", services=services, serviceNum=len(services))
+	return render_template("pages/services.html", serviceNum=getNumServices(), alertNum=getNumAlerts(), services=services)
 
 @app.route('/services/<string:service>')
 def service(service):
     serviceObj=get_db().execute("SELECT * FROM services WHERE name = (?)", [service]).fetchone()
     conversations=get_db().execute("SELECT * FROM conversations WHERE service = (select id from services where name=(?)) ORDER BY time", [service]).fetchall()
-    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
+    return render_template("pages/service.html", serviceNum=getNumServices(), alertNum=getNumAlerts(), service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/services/<string:service>/<int:roundNum>')
 def conversations(service, roundNum):
@@ -116,7 +116,7 @@ def conversations(service, roundNum):
     print type(conversations)
     for convo in conversations:
     	print convo
-    return render_template("pages/service.html", service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
+    return render_template("pages/service.html", serviceNum=getNumServices(), alertNum=getNumAlerts(), service=serviceObj, conversations=conversations, convoLen=len(conversations), graphData=getCharts(service,conversations))
 
 @app.route('/rounds')
 def roundList():
