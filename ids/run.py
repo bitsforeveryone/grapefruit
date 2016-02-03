@@ -31,6 +31,11 @@ def getCharts(service, conversations):
 	for n in range(len(bins)):
 		graph['data'].append({"x": 10**n, "y": bins[n]})
 	return json.dumps(graph)
+
+def getNumServices():
+	numServices = get_db().execute("SELECT count(*) FROM services").fetchone()[0]
+	return numServices
+
 def getServices():
 	res = get_db().execute("SELECT * FROM services").fetchall()
 	print len(res)
@@ -130,7 +135,7 @@ def clearAlerts():
 
 @app.route('/alerts')
 def alertDashboard():
-	return render_template('pages/alerts.html', alerts=getAlerts())
+	return render_template('pages/alerts.html', alerts=getAlerts(), serviceNum=getNumServices())
 
 # TODO: REMOVE THIS
 @app.route('/debug/report')
@@ -146,8 +151,7 @@ def alerts():
 @app.route('/index.html')
 def index():
 	numAlerts = get_db().execute("SELECT count(*) FROM alerts WHERE seen != 1").fetchone()[0]
-	numServices = get_db().execute("SELECT count(*) FROM services").fetchone()[0]
-	return render_template("pages/index.html", serviceNum=numServices, alertNum=numAlerts)
+	return render_template("pages/index.html", serviceNum=getNumServices(), alertNum=numAlerts)
 	
 if __name__ == '__main__':
     app.run(debug=DEBUG,host="0.0.0.0",port=80)
