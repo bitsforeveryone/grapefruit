@@ -4,11 +4,9 @@ FILE=$1
 DB='db.db'
 
 if [ -z $FILE ]; then
-	FILE="data/*.pcap*"
-fi
-
-mkdir -p $(pwd)"/data/conversations/"$ROUND
-mkdir -p $(pwd)"/data/done"
+#	FILE="data/*.pcap*"
+	echo "must specify a file"
+else
 
 for file in $FILE
 do
@@ -18,6 +16,8 @@ do
 	tcpflow -o data/conversations/$ROUND -T %T_%C_%a-%b_%A-%B -r $file
 	echo "[+] $file processed"
 	python pushround.py data/conversations/$ROUND/report.xml
-	mv $file "data/done/."
+#	mv $file "data/done/."
 	echo "[+] Round $ROUND databased"
 done
+
+fi
