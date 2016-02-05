@@ -21,7 +21,7 @@ else
     for f in *; do
         #echo $f
         if [[ -x $f ]] && [[ -f $f ]]; then
-            oStdin=/home/batman/grapefuzz/execs/out/$f/out_stdin
+            oStdin=out/$f/out_stdin
             oFile=out/$f/out_file
             
             cd out
