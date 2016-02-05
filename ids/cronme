@@ -3,4 +3,4 @@ HOST=
 SRC=
 
 #min hour day month weekday command
-*/1   *    *    *     *     cd $IDSDIR && rsync -aiz --log-format=%f -e ssh $HOST:$SRC sync | grep -v '^[.]'| xargs -I {} ./splitcap.sh sync/{}
+*/1   *    *    *     *     cd $IDSDIR && rsync -aiz --log-format=%f -e ssh $HOST:$SRC sync | grep -v '^[.]'| xargs -r -I {} ./splitcap.sh sync/{}
