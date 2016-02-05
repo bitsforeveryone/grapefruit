@@ -20,15 +20,20 @@ def parseReport(filepath):
 	doc = doc['dfxml']['configuration'][1]['fileobject']
 	fname = ""
 	for convo in doc:
-		svc_port = min(int(convo['tcpflow']['@dstport']), int(convo['tcpflow']['@srcport']))
-		if svc_port not in SERVICES:
-			SERVICES[svc_port]="svc_{0}".format(svc_port)
-			try:
-				db.cursor().execute("INSERT INTO services (name, port) VALUES (?, ?)", [SERVICES[svc_port],svc_port])
-				db.commit()
-			except sqlite3.IntegrityError:
-				print "Already in db"
-				pass
+		services = [8001,8004,8005,8009]
+		dp, sp=int(convo['tcpflow']['@dstport']), int(convo['tcpflow']['@srcport'])
+		svc_port=0
+		if dp in services:
+			svc_port=dp
+		elif sp in services:
+			svc_port=sp
+		else:
+			svc_port = min(int(convo['tcpflow']['@dstport']), int(convo['tcpflow']['@srcport']))
+
+
+		db.cursor().execute("""INSERT OR IGNORE INTO services(name,port) VALUES (?, ?)""", 
+		                    ("svc_{0}".format(svc_port), svc_port) )
+		db.commit()
 
 		try:
 			fname = convo['filename']
@@ -44,7 +49,7 @@ def parseReport(filepath):
 			                convo['tcpflow']['@dst_ipn'],svc_port) )
 			db.commit()
 		except sqlite3.IntegrityError:
-			print "Already in db"
+			print "Convo Already in db"
 			pass
 
 if __name__ == '__main__':
