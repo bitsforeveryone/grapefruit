@@ -11,7 +11,7 @@ else
 	sqlite3 $(DB) "CREATE TABLE IF NOT EXISTS rounds (num integer primary key unique);" 
 	sqlite3 $(DB) "CREATE TABLE IF NOT EXISTS services (id integer primary key unique,name text unique, port integer unique);"
 	sqlite3 $(DB) "CREATE TABLE IF NOT EXISTS alerts (id integer primary key,timePassed timestamp,timeFound timestamp,regex text,seen integer default 0,round integer,foreign key(timePassed) references conversations(time),foreign key(regex) references regexes(regex)foreign key(round) references rounds(num)CONSTRAINT unq UNIQUE (timePassed, regex));"
-	sqlite3 $(DB) "CREATE TABLE IF NOT EXISTS regexes (regex text unique,lastRound integer default 0);"
+	sqlite3 $(DB) "CREATE TABLE IF NOT EXISTS regexes (id integer primary key unique,regex text unique,lastRound integer default 0);"
 	mkdir -p data/conversations
 #	mkdir -p data/done
 endif

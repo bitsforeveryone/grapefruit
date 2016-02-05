@@ -57,6 +57,28 @@
                 <!-- /.panel-body -->
             </div>
         </div>
-        
+        <div class = "col-md-6">
+            <div class = "panel panel-default">
+                <div class="panel-heading">
+                    Remove Regexes
+                </div>
+                <div class = "panel-body">
+                    <table class = "table-striped">
+                        <th>
+                            <td> Regex </td>
+                            <td> Last Round Tried </td>
+                            <td> Dismiss </td>
+                        </th>
+                        {% for reg in regexes %}
+                        <tr>
+                            <td> {{ reg[1] }} </td>
+                            <td> {{ reg[2] }} </td>
+                            <td> <a href = "/regex/delete/{{reg[0]}}"><button type="button" class="btn btn-info">X</button></a></td>
+                        </tr>
+                        {%endfor%}
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}

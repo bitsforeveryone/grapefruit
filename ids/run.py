@@ -44,6 +44,10 @@ def getNumRounds():
 	numRounds = get_db().execute("SELECT count(*) FROM rounds").fetchone()[0]
 	return numRounds
 
+def getRegexes():
+	regexes = get_db().execute("SELECT * FROM regexes").fetchall()
+	return regexes
+
 def getServices():
 	res = get_db().execute("SELECT * FROM services").fetchall()
 	print len(res)
@@ -127,6 +131,12 @@ def roundList():
 	rounds = get_db().execute("SELECT r.num, count(*) FROM rounds as r JOIN conversations as c ON r.num = c.round")
 	return render_template("pages/rounds.html", roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), rounds=rounds)
 
+@app.route('/regex/delete/<int:id>')
+def delRegex(id):
+	get_db().execute("DELETE FROM regexes WHERE id = ?", [id])
+	get_db().commit()
+	return redirect("/alerts")
+
 @app.route('/regex', methods=['POST'])
 def addRegex():
 	pattern = request.form['regex']
@@ -148,7 +158,7 @@ def clearAlerts():
 
 @app.route('/alerts')
 def alertDashboard():
-	return render_template('pages/alerts.html', roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), alerts=getAlerts())
+	return render_template('pages/alerts.html', roundNum=getNumRounds(), serviceNum=getNumServices(), alertNum=getNumAlerts(), alerts=getAlerts(), regexes=getRegexes())
 
 # TODO: REMOVE THIS
 @app.route('/debug/report')
