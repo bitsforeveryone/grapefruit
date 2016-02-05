@@ -134,14 +134,6 @@ def addRegex():
 	get_db().commit()
 	return redirect("/debug/alerts")
 
-@app.route('/notify/<string:apikey>', methods=['POST'])
-def addNotification(apikey):
-	if apikey != "c3tomg!!":
-		return "Fuck you."
-	filename = request.form['filename']
-	get_db.execute("INSERT INTO pcaps (name) VALUES (?)", [filename])
-	get_db.commit()
-
 @app.route('/alerts/dismiss/<int:idnum>')
 def dismissAlert(idnum):
 	get_db().execute("UPDATE alerts SET seen=1 WHERE id=(?)", [idnum])
