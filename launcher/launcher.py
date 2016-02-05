@@ -5,8 +5,8 @@ import sys, threading, imp, os, time, random, json
 jobs = {}
 logs = {}
 log_cache = {}
-currentteam = 1 # change this to our team number
-number_of_teams = 9 # change this to the number of teams
+currentteam = 8 # change this to our team number
+number_of_teams = 12 # change this to the number of teams
 
 sys.path.insert(0, './jobs')
 
@@ -27,7 +27,7 @@ def addScript(commands):
 	name = commands[2]
 	location = commands[1]
 	if name not in jobs:
-		jobs[name] = {"location": location, "log": location + ".log", "enabled": False, "stations": range(number_of_teams), "lastRun": 0, "interval": 5 * 60}
+		jobs[name] = {"location": location, "log": location + ".log", "enabled": False, "stations": range(1, number_of_teams+1), "lastRun": 0, "interval": 5 * 60}
 		f = open(jobs[name]["log"], "a+")
 		log_cache[name] = f.read()
 		f.close()
@@ -122,7 +122,7 @@ def changeStations(commands):
 
 	if len(commands) == 3:
 		sta = commands[2].split(",")
-		sta = [int(x) for x in sta if int(x) >= 0 and int(x) < number_of_teams and int(x) != currentteam]
+		sta = [int(x) for x in sta if int(x) > 0 and int(x) <= number_of_teams and int(x) != currentteam]
 		jobs[name]["stations"] = sta
 		print "Successfully changed stations for " + name + " to [" + ", ".join(str(x) for x in sta) + "]"
 
@@ -177,11 +177,19 @@ def quitLauncher(commands):
 	quit()
 
 def postFlag(station, flag, jobName):
-	#submit with curl?
-	return
+	try:
+		url = 'https://live.cyberstakesonline.com/api/binaries/submit'
+		values = {'apikey' : '5516a8d5630a3a8ebc62f57d6295e4599235a579acd5387958', 'flag' : flag}
+
+		data = urllib.urlencode(values)
+		req = urllib2.Request(url, data)
+		response = urllib2.urlopen(req)
+		print '{' + flag + '} ->', response.read()
+	except:
+		pass
 
 def getIpFromStation(station):
-	return "133.33.37." + str(station)
+	return "10.0." + str(station) + ".2"
 
 class LogObject(object):
 	def __init__(self, n):
