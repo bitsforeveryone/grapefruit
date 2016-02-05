@@ -3,9 +3,11 @@
 import re
 import os
 import sqlite3, json
+import StringIO
 
+from hexdump import hexdump
 from math import ceil, log10
-from flask import Flask, render_template, send_from_directory, g, request, redirect, url_for
+from flask import Flask, render_template, send_from_directory, g, request, redirect, url_for, send_file
 
 app = Flask(__name__)
 
@@ -97,6 +99,15 @@ def send_dist(path):
 @app.route('/data/conversations/<path:path>')
 def send_convo(path):
     return send_from_directory('./data/conversations', path)
+
+@app.route('/hex/<path:path>')
+def send_hex(path):
+	with open(path,'rb') as f:
+		xd = f.read()
+	strIO = StringIO.StringIO()
+	strIO.write(xd)
+	strIO.seek(0)
+	return send_file(strIO,attachment_filename="{}.html".format(path),as_attachment=False)
 
 @app.route('/rename', methods=['POST'])
 def rename():
