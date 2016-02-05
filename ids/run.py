@@ -134,8 +134,8 @@ def addRegex():
 	get_db().commit()
 	return redirect("/debug/alerts")
 
-@app.route('/notify/<string: apikey>', methods=['POST'])
-def addNotification():
+@app.route('/notify/<string:apikey>', methods=['POST'])
+def addNotification(apikey):
 	if apikey != "c3tomg!!":
 		return "Fuck you."
 	filename = request.form['filename']
