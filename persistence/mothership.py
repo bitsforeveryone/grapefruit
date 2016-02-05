@@ -34,14 +34,14 @@ class Server:
         sys.stdout.write("> ")
         self.open_socket()
         self.input = [self.server,sys.stdin]
-        commands = {"quit": exit, "status": self.status, "porttimeout": self.changePortTimeout, "sendpy": self.sendPython, "exit": self.exit}
+        commands = {"quit": exit, "status": self.status, "porttimeout": self.changePortTimeout, "sendpy": self.sendPython, "quit": self.exit}
         running = 1
         while running:
             inputready,outputready,exceptready = select.select(self.input,[],[],1)
             for s in inputready:
                 if s == self.server:
                     # handle the server socket
-                    c = RollingClient(self.server.accept())
+                    c = RollingClient(self.server.accept(), self)
                     c.start()
                     self.rollingthreads.append(c)
 
@@ -62,7 +62,16 @@ class Server:
 
     def sendPython(self, *args):
         tid = int(args[0])
-        py = " ".join(args[1:])
+
+        py = ""
+
+        if (args[1] == "-f"):
+            f = open(args[2], "r")
+            py = f.read()
+            f.close()
+        else:
+            py = " ".join(args[1:])
+            
         thread = False
         for i in self.rollingthreads:
             if i.thread_id == tid:
@@ -89,10 +98,16 @@ class Server:
             i.join()
         exit()
 
+    def kill(self, thread_id):
+        for i in range(len(self.rollingthreads)):
+            if self.rollingthreads[i].thread_id == thread_id:
+                del self.rollingthreads[i]
+                return
 
 class RollingClient(threading.Thread):
-    def __init__(self,(client,address)):
+    def __init__(self,(client,address), ser):
         global thread_count
+        self.server = ser
         threading.Thread.__init__(self)
         self.client = client
         self.address = address
@@ -118,7 +133,8 @@ class RollingClient(threading.Thread):
             self.newsock.bind(('',self.newport))
             self.newsock.listen(5)
         except Exception as e:
-            print self.name + ": "+str(e)
+            #print self.name + ": "+str(e)
+            pass
 
 
     def readuntil(self, s):
@@ -127,6 +143,9 @@ class RollingClient(threading.Thread):
             b += s.recv(1)
         return b
 
+    def exit(self):
+        self.server.kill(self.thread_id)
+
     def run(self):
         running = 1
         while(1):
@@ -134,19 +153,17 @@ class RollingClient(threading.Thread):
 
             try:
                 self.client, self.address = self.newsock.accept()
-            except Exception as e:
-                print e
-                break
 
-            res = self.readuntil(self.client)
-            res = json.loads(res[:-1])
-            if "data" in res and len(res["data"]) > 0:
-                print "Received python from {0} [Thread {1}]".format(self.address, self.thread_id)
-                print "->", res["data"][:-1]
-            #else:
-             #   print "No data received from {0} [Thread {1}]".format(self.address, self.thread_id)
+                res = self.readuntil(self.client)
+                res = json.loads(res[:-1])
+                if "data" in res and len(res["data"]) > 0:
+                    print "Received python from {0} [Thread {1}]".format(self.address, self.thread_id)
+                    print "->", res["data"][:-1]
+            except Exception as e:
+                #print e
+                self.exit()
+                return
             time.sleep(1)
-            
             
 
 if __name__ == "__main__":
