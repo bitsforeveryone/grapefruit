@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, threading, imp, os, time, random, json
+import sys, threading, imp, os, time, random, json, urllib, urllib2
 
 jobs = {}
 logs = {}
@@ -178,15 +178,17 @@ def quitLauncher(commands):
 
 def postFlag(station, flag, jobName):
 	try:
-		url = 'https://live.cyberstakesonline.com/api/binaries/submit'
-		values = {'apikey' : '5516a8d5630a3a8ebc62f57d6295e4599235a579acd5387958', 'flag' : flag}
+		url = ''
+		values = {'apikey' : '', 'flag' : flag}
 
 		data = urllib.urlencode(values)
 		req = urllib2.Request(url, data)
 		response = urllib2.urlopen(req)
-		print '{' + flag + '} ->', response.read()
+		writeLog(jobName, '{' + flag + '} ->' + response.read())
+		return True
 	except:
 		pass
+	return False
 
 def getIpFromStation(station):
 	return "10.0." + str(station) + ".2"
