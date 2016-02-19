@@ -1,4 +1,5 @@
 grapefuzz/problems1.tgz
+grapefuzz/fuzz_bins.tgz
 grapfuzz/execs/*
 
 sync/
