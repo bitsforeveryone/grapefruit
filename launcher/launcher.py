@@ -1,357 +1,463 @@
 #!/usr/bin/env python
 
-import sys, threading, imp, os, time, random, json, urllib, urllib2
+############### CUSTOMIZATION OPTIONS ###############
 
-jobs = {}
-logs = {}
-log_cache = {}
-currentteam = 8 # change this to our team number
+currentteam = 8 # change this to your team number.  This number will _never_ have a job run against it
 number_of_teams = 12 # change this to the number of teams
+default_interval = 5 * 60 # 5 minutes
+default_chaff = 10 # Chance of chaff getting sent in any given second.  For example, there is a 1 in 10 chance of chaff getting sent.  Set to zero for no chaff
+
+def getIpFromStation(station):
+	# this needs to return an IP for a given station number
+	return "10.0.%d.2" % station
+
+class PostFlag:
+	def submit(self, flag, station, jobName, log):
+		# this is where you'll implement automatic submission
+		# use log.writeLog() in place of print
+		log.writeLog('Submitting flag {%s} from IP %s' % (flag, getIpFromStation(station)))
+
+############### DON'T MESS WITH STUFF BELOW THIS LINE (unless you know what you're doing) ###############
+
+import sys, imp, os, time, random, json, urllib, urllib2, multiprocessing, readline, threading
+from multiprocessing.managers import BaseManager
 
 sys.path.insert(0, './jobs')
 
-def writeLog(name, info):
-	try:
-		log = logs[name]
-		nstring = "[" + time.strftime("%x") + " " + time.strftime("%X") + "]: " + info + "\n"
-		log.write(nstring)
-		log_cache[name] += nstring
-	except:
-		pass # only doing this so this will never crash
+class LogClass:
+	def init(self, name, log_file):
+		self.log_location = log_file
+		self.log_cache = ""
+		self.name = name
 
-def addScript(commands):
-	if len(commands) != 3:
-		print "incorrect usage. see help"
-		return False
+		if os.path.isfile(self.log_location):
+			f = open(self.log_location, "r")
+			self.log_cache = f.read()
+			f.close()
 
-	name = commands[2]
-	location = commands[1]
-	if name not in jobs:
-		jobs[name] = {"location": location, "log": location + ".log", "enabled": False, "stations": range(1, number_of_teams+1), "lastRun": 0, "interval": 5 * 60}
-		f = open(jobs[name]["log"], "a+")
-		log_cache[name] = f.read()
-		f.close()
-		logs[name] = open(jobs[name]["log"], "a+")
-		jobs[name]["stations"].remove(currentteam)
-		print "Added new job " + name + " -> " + location
-		print "Job not enabled"
-		return True
-	else:
-		print "job already exists for that name"
-		return False
+	def writeLog(self, *info):
+		try: 
+			log_string = "[%s %s]: %s\n" % (time.strftime("%x"), time.strftime("%X"), " ".join([str(x) for x in info]))
+			self.log_cache = self.log_cache + log_string
+			f = open(self.log_location, "a")
+			f.write(log_string)
+			f.close()
+			return True
+		except:
+			return False # how do we log if the log crashes?
 
-def enableScript(commands):
-	if len(commands) != 2:
-		print "incorrect usage. see help"
-		return False
+	def getLines(self, numberOfLines):
+		res = ""
+		for line in self.log_cache.split("\n")[-numberOfLines-1:-1]:
+			res += line.rstrip() + "\n"
+		return res[:-1]
 
-	name = commands[1]
-	if name in jobs:
-		jobs[name]["enabled"] = True
-		print "Enabled job " + name
-		beginJob(name)
-		return True
-	else:
-		print "job does not exist for that name"
-		return False
+class MyManager(BaseManager):
+	pass
 
-def disableScript(commands):
-	if len(commands) != 2:
-		print "incorrect usage. see help"
-		return False
+MyManager.register('Logger', LogClass)
+MyManager.register('PostFlag', PostFlag)
 
-	name = commands[1]
-	if name in jobs:
-		jobs[name]["enabled"] = False
-		print "Disabled job " + name
-		return True
-	else:
-		print "job does not exist for that name"
-		return False
+class Job:
+	def __init__(self, name, location, imp={}):
+		self.name = name
+		self.location = location
+		self.log_location = location + ".log"
+		self.enabled = imp['enabled'] if 'enabled' in imp else False
+		self.stations = imp['stations'] if 'stations' in imp else range(1, number_of_teams+1)
+		if currentteam in self.stations:
+			self.stations.remove(currentteam)
+		self.lastRun = 0
+		self.interval = imp['interval'] if 'interval' in imp else default_interval
+		self.threads = {}
 
-def deleteScript(commands):
-	if len(commands) != 2:
-		print "incorrect usage. see help"
-		return False
+		manager = MyManager()
+		manager.start()
+		self.logger = manager.Logger()
+		self.poster = manager.PostFlag()
+		self.logger.init(self.name, self.log_location)
 
-	name = commands[1]
-	if name in jobs:
-		del jobs[name]
-		logs[name].close()
-		del logs[name]
-		print "Deleted job " + name
-		return True
-	else:
-		print "job does not exist for that name"
-		return False
+		print "Created new job %s [%s]" % (self.name, self.location)
 
-def jobinfo(name):
-	if name not in jobs:
-		print "job does not exist for that name"
-		return
-
-	res = name + " [" + ("Enabled" if jobs[name]["enabled"] else "Disabled") + "]\n"
-	res += "\tStations: [" + ", ".join(str(x) for x in jobs[name]["stations"]) + "]\n"
-	res += "\tRun Interval: " + str(jobs[name]["interval"]) + " seconds"
-	return res
-
-
-def listJobs(commands):
-	if len(jobs) == 0:
-		print "No current jobs"
-		return
-
-	if len(commands) == 2:
-		print jobinfo(commands[1])
-	else:
-		for key in jobs.keys():
-			print jobinfo(key)
-
-def changeStations(commands):
-	if len(commands) < 2:
-		print "incorrect usage. see help"
-		return
-
-	name = commands[1]
-
-	if name not in jobs:
-		print "job does not exist for that name"
-		return
-
-	stations = []
-
-	if len(commands) == 3:
-		sta = commands[2].split(",")
-		sta = [int(x) for x in sta if int(x) > 0 and int(x) <= number_of_teams and int(x) != currentteam]
-		jobs[name]["stations"] = sta
-		print "Successfully changed stations for " + name + " to [" + ", ".join(str(x) for x in sta) + "]"
-
-def changeInterval(commands):
-	if len(commands) < 3:
-		print "incorrect usage. see help"
-		return
-
-	name = commands[1]
-	interval = int(commands[2]) if commands[2].isdigit() else 0
-
-	if name not in jobs:
-		print "job does not exist for that name"
-		return
-
-	if interval <= 5:
-		print "interval needs to be at least 5 seconds"
-		return
-
-	jobs[name]["interval"] = interval
-	print "Successfully changed time interval to " + str(interval) + " seconds for job " + name
-
-def help(commands):
-	print "Welcome to launch master 9000\n"
-	print "Useful commands:"
-	print "\th -> help"
-	print "\tq -> quit"
-	print "\ta -> add a new job"
-	print "\t\tUsage: a <job_path> <name>"
-	print "\te -> enable a disabled job"
-	print "\t\tUsage: e <name>"
-	print "\td -> disable a enabled job"
-	print "\t\tUsage: d <name>"
-	print "\tr -> delete a job"
-	print "\t\tUsage: r <name>"
-	print "\tl -> list job information"
-	print "\t\tUsage: l [name]"
-	print "\t\tLists all jobs if name isn't specified"
-	print "\ts -> change stations to attack"
-	print "\t\tUsage: s <name> [station numbers seperated by commas]"
-	print "\ti -> change job interval (in seconds)"
-	print "\t\tUsage: i <name> <interval_time>"
-	print "\tp -> print last # of lines from job log file"
-	print "\t\tUsage: p <name> <number_of_lines>"
-	print "\tx -> export jobs to file to import later"
-	print "\t\tUsage: x <file_name>"
-
-def quitLauncher(commands):
-	for name in logs.keys():
-		logs[name].close()
-		del logs[name]
-	quit()
-
-def postFlag(station, flag, jobName):
-	try:
-		url = ''
-		values = {'apikey' : '', 'flag' : flag}
-
-		data = urllib.urlencode(values)
-		req = urllib2.Request(url, data)
-		response = urllib2.urlopen(req)
-		writeLog(jobName, '{' + flag + '} ->' + response.read())
-		return True
-	except:
-		pass
-	return False
-
-def getIpFromStation(station):
-	return "10.0." + str(station) + ".2"
-
-class LogObject(object):
-	def __init__(self, n):
-		self.name = n
-	def __call__(self, *p, **k):
-		writeLog(self.name, " ".join([str(x) for x in p]))
-
-def launchJob(name, station, real=True):
-	try:
-		job = jobs[name]
-		filepath = job['location']
-
-		mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
-
-		if file_ext.lower() == '.py':
-			py_mod = imp.load_source(mod_name, filepath)
-
-		elif file_ext.lower() == '.pyc':
-			py_mod = imp.load_compiled(mod_name, filepath)
-
-		if real:
-			expected_func = "runJob"
+		if not self.enabled:
+			print "Job not enabled"
 		else:
-			expected_func = "fakeJob"
+			print "Job enabled"
 
-		if hasattr(py_mod, expected_func):
-			log = LogObject(name)
+	def __repr__(self):
+		res = "%s [%s]\n" % (self.name, ("Enabled" if self.enabled else "Disabled"))
+		res += "\tStations: [%s]\n" % ", ".join(str(x) for x in self.stations)
+		res += "\tRun Interval: %d seconds" % self.interval
+		return res
+
+	def writeLog(self, *info):
+		self.logger.writeLog(*info)
+
+	def postFlag(self, station, flag):
+		self.poster.submit(flag, station, self.name, self.logger)
+
+	def enable(self):
+		self.enabled = True
+		print "Enabled job %s" % self.name
+		self.beginJob()
+		return True
+
+	def disable(self):
+		self.enabled = False
+		for i in self.stations:
+			self.killThread(i, True, True)
+		print "Disabled job %s" % self.name
+		return True
+
+	def delete(self):
+		try:
+			self.enabled = False
+			for i in self.stations:
+				self.killThread(i, True, True)
+			print "Successfully deleted job %s" % self.name
+			return True
+		except:
+			return False
+
+	def changeStations(self, stations):
+		oldStations = self.stations
+		validStations = range(1, number_of_teams+1)
+		if currentteam in validStations:
+			validStations.remove(currentteam)
+		self.stations = [x for x in stations if x in validStations]
+
+		for station in oldStations:
+			if station not in self.stations:
+				self.killThread(station, True, True)
+		
+		print "Successfully changed stations for %s to [%s]" % (self.name, ", ".join(str(x) for x in self.stations))
+		return True
+
+	def changeInterval(self, interval):
+		if str(interval).isdigit():
+			if int(interval) > 0:
+				self.interval = interval
+				print "Successfully changed run interval to %d" % self.interval
+				return True
+
+		print "%s is not a valid interval (number greater than zero)" % str(interval)
+		return False
+
+	def beginJob(self, real=True): # If real, runs runJob and otherwise runs fakeJob (chaff)
+		if real:
+			self.writeLog("Starting job %s" % self.name)
+			self.lastRun = time.time()
+
+		for station in self.stations:
+			self.spawnThread(station, real)
+
+		return True
+
+	def killThread(self, station, real=False, fake=False):
+		if station in self.threads:
+			currThread = self.threads[station]
+			try:
+				if real and "real" in currThread and currThread["real"].is_alive():
+					currThread["real"].terminate()
+			except:
+				pass
+
+			try:
+				if fake and "fake" in currThread and currThread["fake"].is_alive():
+					currThread["fake"].terminate()
+			except:
+				pass
+
+			if real and fake:
+				del self.threads[station]
+
+			return True
+		else:
+			return False
+
+	def spawnThread(self, station, real):
+		if real:
+			self.killThread(station, True)
+		else:
+			self.killThread(station, False, True)
+
+		if not station in self.threads:
+			self.threads[station] = {}
+
+		realLoc = "real" if real else "fake"
+		self.threads[station][realLoc] = multiprocessing.Process(target=self.runOnStation, args=(station, real))
+		self.threads[station][realLoc].daemon = True
+		self.threads[station][realLoc].start()
+
+	def runOnStation(self, station, real):
+		try:
+			filepath = self.location
+
+			mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
+
+			if file_ext.lower() == '.py':
+				py_mod = imp.load_source(mod_name, filepath)
+
+			elif file_ext.lower() == '.pyc':
+				py_mod = imp.load_compiled(mod_name, filepath)
 
 			if real:
-				flag = getattr(py_mod, expected_func)(getIpFromStation(station), log)
-				if flag:
-					postFlag(station, flag, name)
-					writeLog(name, "Job " + name + " exited successfully on station " + str(station) + " with flag: " + flag)
-					return True
-				else:
-					writeLog(name, "Job " + name + " couldn't find a flag from station " + str(station))
-					return False
+				expected_func = "runJob"
 			else:
-				getattr(py_mod, expected_func)(getIpFromStation(station), log)
-				writeLog(name, "Job " + name + " ran a fake job on station " + str(station))
-		else:
-			writeLog(name, "Job " + name + " doesn't have a " + expected_func + " definition")
-			return False
-	except:
-		writeLog(name, "Job " + name + " for station " + str(station) + " crashed")
-		return False
+				expected_func = "fakeJob"
 
-def launchThread(name, station, real):
-	job = jobs[name]
-	t = threading.Thread(target=launchJob, args=(name, station, real))
-	t.setDaemon(True)
-	t.start()
-
-def beginJob(name, real=True):
-	if real:
-		writeLog(name, "Beginning job " + name)
-	else:
-		writeLog(name, "Beginning fake job " + name)
-
-	job = jobs[name]
-	if real:
-		job["lastRun"] = time.time()
-	for station in job['stations']:
-		launchThread(name, station, real)
-
-def printLog(commands):
-	if len(commands) < 3:
-		print "incorrect usage. see help"
-		return
-
-	name = commands[1]
-	lines = int(commands[2]) if commands[2].isdigit() else 10
-
-	if name not in jobs:
-		print "job does not exist for that name"
-		return
-
-	if lines <= 0:
-		print "needs to be at least 1 line"
-		return
-
-	log = log_cache[name]
-	job = jobs[name]
-	i = 0
-
-	print ">>> PRINTING LAST " + str(lines) + " LINES OF " + job["log"] + " <<<"
-
-	for line in reversed(log.split("\n")):
-		if i > lines:
-			break
-		else:
-			if i > 0:
-				print line.rstrip()
-			i += 1
-
-	print ">>> FINISHED PRINTING FROM " + job["log"] + " <<<"
-
-def exportJobs(commands):
-	if len(commands) < 2:
-		print "incorrect usage. see help"
-		return
-
-	fi = commands[1]
-
-	nf = open(fi, "w")
-	nf.write(json.dumps(jobs))
-	nf.close()
-
-	print "Successfully exported jobs to " + fi
-
-def loopJobs():
-	while True:
-		for job in jobs.keys():
-			if jobs[job]['enabled']:
-				if time.time() - jobs[job]['lastRun'] >= jobs[job]['interval']:
-					try:
-						beginJob(job)
-					except:
-						pass
+			if hasattr(py_mod, expected_func):
+				if real:
+					flag = getattr(py_mod, expected_func)(getIpFromStation(station), self.logger)
+					if flag:
+						self.writeLog("SUCCESS: Job %s exited on station %d with flag: %s" % (self.name, station, flag))
+						self.postFlag(station, flag)
+						return True
+					else:
+						self.writeLog("FAIL: Job %s couldn't find a flag from station %d" % (self.name, station))
+						return False
 				else:
-					if random.randint(0, 10) == 7:
-						try:
-							beginJob(job, False)
-						except:
-							pass
-		time.sleep(2)
-
-def launcher():
-	x = raw_input("Would you like to import a previous jobs file? [y/n]: ")
-
-	if x.lower() == "y":
-		fi = raw_input("Enter the file name: ")
-		try:
-			f = open(fi, "r")
-			njobs = json.loads(f.read())
-			for key in njobs.keys():
-				jobs[key] = njobs[key]
-				fi = open(jobs[key]["log"], "a+")
-				log_cache[key] = fi.read()
-				fi.close()
-				logs[key] = open(jobs[key]["log"], "a+")
-			f.close()
-			print "Successfully imported jobs file"
+					getattr(py_mod, expected_func)(getIpFromStation(station), self.logger)
+					self.writeLog("Job %s ran a fake job on station %d" % (self.name, station))
+					return True
+			else:
+				self.writeLog("Job %s doesn't have a %s definition" % (self.name, expected_func))
+			return False
 		except:
-			print "Could not import jobs file"
-			pass
+			self.writeLog("Job %s for station %d crashed" % (self.name, station))
+			return False
 
-	looper = threading.Thread(target=loopJobs)
-	looper.setDaemon(True)
-	looper.start()
+	def printLog(self, numberOfLines):
+		numberOfLines = int(numberOfLines) if str(numberOfLines).isdigit() and int(numberOfLines) > 0 else 10
 
-	commands = {"help": help, "h" : help, "quit": quitLauncher, "q": quitLauncher, "a": addScript, "e": enableScript, "d": disableScript, "r": deleteScript, "l": listJobs, "s": changeStations, "i": changeInterval, "p": printLog, "x": exportJobs}
-	print "\nType 'help' to see usage\n"
-	while True:
-		res = raw_input("> ")
-		res = res.split()
-		if len(res) > 0:
-			if res[0] in commands:
-				commands[res[0]](res)
+		print ">>> PRINTING LAST %d LINES OF %s <<<" % (numberOfLines, self.log_location)
 
+		print self.logger.getLines(numberOfLines)
 
+		print ">>> FINISHED PRINTING FROM %s <<<" % self.log_location
 
-launcher()
+	def export(self):
+		return {"name": self.name, "location": self.location, "enabled": self.enabled, "interval": self.interval, "stations": self.stations}
+
+class Usage:
+	def __init__(self, func, usage, optional=False):
+		self.func = func
+		self.usage = usage
+		self.optional = optional
+
+	def __call__(self, s):
+		return self.func(s) # should return tuple (bool worked, return value)
+
+	def __repr__(self):
+		return "".join(["<" if not self.optional else "[", self.usage, ">" if not self.optional else "]"])
+
+class Command:
+	def __init__(self, name, hel, winner, *usage):
+		self.usage = usage
+		self.winner = winner
+		self.name = name
+		self.help = hel
+
+	def __call__(self, *s):
+		options = []
+		for usage in range(len(self.usage)):
+			if usage < len(s):
+				(worked, res) = self.usage[usage](s[usage])
+				if worked:
+					options.append(res)
+				else:
+					if self.usage[usage].optional:
+						break
+					else:
+						print res
+						print self
+						return False
+			else:
+				if self.usage[usage].optional:
+					break
+				else:
+					print self
+					return False
+
+		self.winner(*options)
+
+	def __repr__(self):
+		return "Usage: " + self.name + " " + " ".join(str(x) for x in self.usage)
+
+class Launcher:
+	def __init__(self):
+		self.version = "v1.0.0"
+		self.jobs = {}
+		self.commands = {
+			"add": Command("add", "add a new job", self.createJob, Usage(self.checkFileExists, "job file"), Usage(self.checkJobNotExists, "job name")),
+			"enable": Command("enable", "begin running job", lambda job: job.enable(), Usage(self.checkJobExists, "job name")),
+			"disable": Command("disable", "stop running job and kill any threads it is currently running", lambda job: job.disable(), Usage(self.checkJobExists, "job name")),
+			"delete": Command("delete", "stop running job, kill any threads it is running, and remove it from launcher", self.deleteJob, Usage(self.checkJobExists, "job name")),
+			"list": Command("list", "list all information on current jobs", self.listJobs, Usage(self.checkJobExists, "job name", True)),
+			"stations": Command("stations", "change stations that a job will run on", lambda job, stations: job.changeStations(stations), Usage(self.checkJobExists, "job name"), Usage(self.checkIfInts, "stations separated by commas")),
+			"interval": Command("interval", "changes the time interval between running the job", lambda job, interval=default_interval: job.changeInterval(interval), Usage(self.checkJobExists, "job name"), Usage(lambda i: (True, int(i)) if i.isdigit() and int(i) > 0 else (False, "%s is not a valid interval (number greater than zero)" % i), "interval in seconds")),
+			"help": Command("help", "show information from all commands", self.commandHelp, Usage(self.commandExists, "command name", True)),
+			"quit": Command("quit", "kill all jobs and exit out of launcher", self.quitLauncher),
+			"print": Command("print", "print most recent lines from the log file", lambda job, lines=10: job.printLog(lines), Usage(self.checkJobExists, "job name"), Usage(lambda i: (True, int(i)) if i.isdigit() and int(i) > 0 else (False, "%s is not a valid number of lines (number greater than zero)" % i), "number of lines", True)),
+			"export": Command("export", "export all jobs to a job file to be imported later", self.exportJobs, Usage(lambda i: (True, str(i)), "export location"))
+		}
+
+	def checkJobExists(self, name):
+		if name in self.jobs:
+			return (True, self.jobs[name])
+		else:
+			return (False, "No job with name '%s' exists" % name)
+
+	def checkJobNotExists(self, name):
+		if name not in self.jobs:
+			return (True, name)
+		else:
+			return (False, "Job with name '%s' already exists" % name)
+
+	def checkFileExists(self, location):
+		if os.path.isfile(location):
+			return (True, location)
+		else:
+			return (False, "There is no file at location '%s'" % location)
+
+	def checkIfInts(self, stat):
+		nstat = []
+		for i in stat.split(","):
+			if i.isdigit():
+				nstat.append(int(i))
+		if len(nstat) > 0:
+			return (True, nstat)
+		else:
+			return (False, "Stations must be integers separated by commas with no spaces")
+
+	def createJob(self, location, name):
+		self.jobs[name] = Job(name, location)
+
+	def deleteJob(self, job):
+		job.delete()
+		del self.jobs[job.name]
+
+	def listJobs(self, job=False):
+		if job != False:
+			print job
+		else:
+			if len(self.jobs) > 0:
+				for key in self.jobs.keys():
+					print self.jobs[key]
+			else:
+				print "No jobs created yet"
+
+	def commandExists(self, name):
+		if name in self.commands:
+			return (True, self.commands[name])
+		else:
+			return (False, "There is no command with that name")
+
+	def commandHelp(self, command=False):
+		if command != False:
+			print "%s -> %s" % (command.name, command.help)
+			print "\t" + str(command)
+		else:
+			print "Grapefruit Exploit Launcher %s\n" % self.version
+			print "All grapefruit commands:\n"
+			for c in self.commands.keys():
+				print "\t%s -> %s" % (self.commands[c].name, self.commands[c].help)
+				print "\t\t" + str(self.commands[c])
+			print ""
+
+	def quitLauncher(self):
+		for key in self.jobs.keys():
+			self.jobs[key].delete()
+		quit()
+
+	def exportJobs(self, location):
+		njobs = {}
+		try:
+			for key in self.jobs.keys():
+				njobs[key] = self.jobs[key].export()
+
+			nf = open(location, "w")
+			nf.write(json.dumps(njobs))
+			nf.close()
+
+			print "Successfully exported jobs to %s" % location
+			return True
+		except:
+			print "Failed to export jobs to %s" % location
+			return False
+
+	def loopJobs(self):
+		while True:
+			for job in self.jobs.keys():
+				if self.jobs[job].enabled:
+					if time.time() - self.jobs[job].lastRun >= self.jobs[job].interval:
+						try:
+							self.jobs[job].beginJob()
+						except:
+							self.jobs[job].writeLog("There was an error running this job")
+					else:
+						if default_chaff > 0 and random.randint(0, default_chaff) == default_chaff:
+							try:
+								self.jobs[job].beginJob(False)
+							except:
+								pass # Don't care if this fails; it's just chaff
+			time.sleep(1)
+
+	def start(self):
+		x = raw_input("Would you like to import a previous jobs file? [y/n]: ")
+
+		if x.lower() == "y" or x.lower() == "yes":
+			fi = raw_input("Enter the file name: ")
+			try:
+				f = open(fi.strip(), "r")
+				njobs = json.loads(f.read())
+				f.close()
+
+				print "Attempting to import jobs file\n"
+
+				for key in njobs.keys():
+					self.jobs[key] = Job(njobs[key]["name"], njobs[key]["location"], njobs[key])
+
+				print "\nSuccessfully imported jobs file"
+			except:
+				print "Could not import jobs file"
+
+		looper = threading.Thread(target=self.loopJobs)
+		looper.setDaemon(True)
+		looper.start()
+
+		completer = Completer(self.commands.keys())
+
+		readline.parse_and_bind("tab: complete")
+		readline.set_completer(completer.complete)
+
+		print "\nType 'help' to for usage\n"
+		while True:
+			res = raw_input("> ")
+			if len(res) > 0:
+				res = res.rstrip().split(" ")
+				if res[0] in self.commands:
+					self.commands[res[0]](*res[1:])
+				else:
+					print "Not a valid command. Type 'help' for usage"
+
+# http://effbot.org/librarybook/readline.htm
+class Completer:
+	def __init__(self, words):
+		self.words = words
+		self.prefix = None
+	def complete(self, prefix, index):
+		if prefix != self.prefix:
+			# we have a new prefix!
+			# find all words that start with this prefix
+			self.matching_words = [
+				w for w in self.words if w.startswith(prefix)
+			]
+			self.prefix = prefix
+		try:
+			return self.matching_words[index]
+		except IndexError:
+			return None
+
+if __name__ == "__main__":
+	Launcher().start()
