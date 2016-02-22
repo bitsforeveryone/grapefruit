@@ -19,7 +19,7 @@ The launcher framework is a REPL that runs job files on certain IP's at specifie
 
 ### Job File Usage
 Job files must contain two functions:
-- runJob(ip, log) -> runs the job on a given ip.  log is a function pointer that takes in n args as a string and prints to a log file (use log.writeLog() in place of print). This function should return the flag as a string if successful or False if unsuccessful.
-- fakeJob(ip, log) -> runs a fake job on a given ip. log is a function pointer that takes in n args as a string and prints to a log file (use log.writeLog() in place of print). Doesn't matter what this returns as it will be ignored. This should work similarily to runJob and will run at random time intervals
+- runJob(ip) -> runs the job on a given ip.  This function should return the flag as a string if successful or False if unsuccessful.
+- fakeJob(ip) -> runs a fake job on a given ip.  This function should return anything but False. This will work similarily to runJob and will run at random time intervals
 
-Note: anything printed in the job file will be printed in STDOUT, so avoid that
+Note: anything printed in the job file will be printed to the job's log file

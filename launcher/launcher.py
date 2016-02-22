@@ -11,18 +11,31 @@ def getIpFromStation(station):
 	# this needs to return an IP for a given station number
 	return "10.0.%d.2" % station
 
-class PostFlag:
-	def submit(self, flag, station, jobName, log):
-		# this is where you'll implement automatic submission
-		# use log.writeLog() in place of print
-		log.writeLog('Submitting flag {%s} from IP %s' % (flag, getIpFromStation(station)))
+def submit(flag, station, job):
+	# this is where you'll implement automatic submission
+	# this will print to the log
+	print 'Submitting flag {%s} from IP %s' % (flag, getIpFromStation(station))
 
 ############### DON'T MESS WITH STUFF BELOW THIS LINE (unless you know what you're doing) ###############
 
-import sys, imp, os, time, random, json, urllib, urllib2, multiprocessing, readline, threading
+import sys, imp, os, time, random, json, urllib, urllib2, multiprocessing, readline, threading, re
 from multiprocessing.managers import BaseManager
 
 sys.path.insert(0, './jobs')
+
+class Logger:
+	def __init__(self, log):
+		self.buffer = ""
+		self.log = log
+
+	def write(self, info):
+		self.buffer += info
+		if self.buffer[-1] == "\n":
+			self.log.writeLog(self.buffer)
+			self.buffer = ""
+
+	def flush(self):
+		pass
 
 class LogClass:
 	def init(self, name, log_file):
@@ -37,7 +50,10 @@ class LogClass:
 
 	def writeLog(self, *info):
 		try: 
-			log_string = "[%s %s]: %s\n" % (time.strftime("%x"), time.strftime("%X"), " ".join([str(x) for x in info]))
+			combine = " ".join([str(x) for x in info])
+			if combine[-1] == "\n":
+				combine = combine[:-1]
+			log_string = "[%s %s]: %s\n" % (time.strftime("%x"), time.strftime("%X"), combine)
 			self.log_cache = self.log_cache + log_string
 			f = open(self.log_location, "a")
 			f.write(log_string)
@@ -56,7 +72,7 @@ class MyManager(BaseManager):
 	pass
 
 MyManager.register('Logger', LogClass)
-MyManager.register('PostFlag', PostFlag)
+# MyManager.register('PostFlag', PostFlag)
 
 class Job:
 	def __init__(self, name, location, imp={}):
@@ -74,7 +90,7 @@ class Job:
 		manager = MyManager()
 		manager.start()
 		self.logger = manager.Logger()
-		self.poster = manager.PostFlag()
+		#self.poster = manager.PostFlag()
 		self.logger.init(self.name, self.log_location)
 
 		print "Created new job %s [%s]" % (self.name, self.location)
@@ -191,6 +207,10 @@ class Job:
 
 	def runOnStation(self, station, real):
 		try:
+			log = Logger(self.logger)
+			sys.stdout = log
+			sys.stderr = log
+
 			filepath = self.location
 
 			mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
@@ -208,23 +228,23 @@ class Job:
 
 			if hasattr(py_mod, expected_func):
 				if real:
-					flag = getattr(py_mod, expected_func)(getIpFromStation(station), self.logger)
+					flag = getattr(py_mod, expected_func)(getIpFromStation(station))
 					if flag:
-						self.writeLog("SUCCESS: Job %s exited on station %d with flag: %s" % (self.name, station, flag))
-						self.postFlag(station, flag)
+						print "SUCCESS: Job %s exited on station %d with flag: %s" % (self.name, station, flag)
+						submit(flag, station, self)
 						return True
 					else:
-						self.writeLog("FAIL: Job %s couldn't find a flag from station %d" % (self.name, station))
+						print "FAIL: Job %s couldn't find a flag from station %d" % (self.name, station)
 						return False
 				else:
-					getattr(py_mod, expected_func)(getIpFromStation(station), self.logger)
-					self.writeLog("Job %s ran a fake job on station %d" % (self.name, station))
+					getattr(py_mod, expected_func)(getIpFromStation(station))
+					print "Job %s ran a fake job on station %d" % (self.name, station)
 					return True
 			else:
-				self.writeLog("Job %s doesn't have a %s definition" % (self.name, expected_func))
+				print "Job %s doesn't have a %s definition" % (self.name, expected_func)
 			return False
-		except:
-			self.writeLog("Job %s for station %d crashed" % (self.name, station))
+		except Exception as e:
+			print "Job %s for station %d crashed: %s" % (self.name, station, str(e))
 			return False
 
 	def printLog(self, numberOfLines):
@@ -426,10 +446,11 @@ class Launcher:
 		looper.setDaemon(True)
 		looper.start()
 
-		completer = Completer(self.commands.keys())
-
+		comp = Completer(self.commands.keys())
+		# we want to treat '/' as part of a word, so override the delimiters
+		readline.set_completer_delims(' \t\n;')
 		readline.parse_and_bind("tab: complete")
-		readline.set_completer(completer.complete)
+		readline.set_completer(comp.complete)
 
 		print "\nType 'help' to for usage\n"
 		while True:
@@ -441,23 +462,63 @@ class Launcher:
 				else:
 					print "Not a valid command. Type 'help' for usage"
 
-# http://effbot.org/librarybook/readline.htm
-class Completer:
-	def __init__(self, words):
-		self.words = words
-		self.prefix = None
-	def complete(self, prefix, index):
-		if prefix != self.prefix:
-			# we have a new prefix!
-			# find all words that start with this prefix
-			self.matching_words = [
-				w for w in self.words if w.startswith(prefix)
-			]
-			self.prefix = prefix
-		try:
-			return self.matching_words[index]
-		except IndexError:
-			return None
+# http://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
+
+class Completer(object):
+
+	def __init__(self, commands):
+		self.commands = commands
+		self.re_space = re.compile('.*\s+$', re.M)
+
+	def _listdir(self, root):
+		res = []
+		for name in os.listdir(root):
+			path = os.path.join(root, name)
+			if os.path.isdir(path):
+				name += os.sep
+			res.append(name)
+		return res
+
+	def _complete_path(self, path=None):
+		if not path:
+			return self._listdir('.')
+		dirname, rest = os.path.split(path)
+		tmp = dirname if dirname else '.'
+		res = [os.path.join(dirname, p) for p in self._listdir(tmp) if p.startswith(rest)]
+		# more than one match, or single match which does not exist (typo)
+		if len(res) > 1 or not os.path.exists(path):
+			return res
+		# resolved to a single directory, so return list of files below it
+		if os.path.isdir(path):
+			return [os.path.join(path, p) for p in self._listdir(path)]
+		# exact file match terminates this completion
+		return [path + ' ']
+
+	def complete_extra(self, args):
+		if not args:
+			return self._complete_path('.')
+		# treat the last arg as a path and complete it
+		return self._complete_path(args[-1])
+
+	def complete(self, text, state):
+		buffer = readline.get_line_buffer()
+		line = readline.get_line_buffer().split()
+
+		# show all commands
+		if not line:
+			return [c + ' ' for c in self.commands][state]
+		# account for last argument ending in a space
+		if self.re_space.match(buffer):
+			line.append('')
+		# resolve command to the implementation function
+		cmd = line[0].strip()
+		if cmd in self.commands:
+			args = line[1:]
+			if args:
+				return (self.complete_extra(args) + [None])[state]
+			return [cmd + ' '][state]
+		results = [c + ' ' for c in self.commands if c.startswith(cmd)] + [None]
+		return results[state]
 
 if __name__ == "__main__":
 	Launcher().start()
