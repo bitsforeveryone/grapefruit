@@ -37,6 +37,9 @@ class Logger:
 	def flush(self):
 		pass
 
+	def readline(self):
+		return "\n"
+
 class LogClass:
 	def init(self, name, log_file):
 		self.log_location = log_file
@@ -210,6 +213,7 @@ class Job:
 			log = Logger(self.logger)
 			sys.stdout = log
 			sys.stderr = log
+			sys.stdin = log
 
 			filepath = self.location
 
