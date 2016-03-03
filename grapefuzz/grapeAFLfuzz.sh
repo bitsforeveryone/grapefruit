@@ -23,8 +23,8 @@ else
             cd $f
             mkdir -p out_stdin
             mkdir -p out_file
-	        cd $bins
-	        timeout $tout afl-fuzz -Q -d -i $indir -o $oStdin ./$f @@
+	    cd $bins
+	    timeout $tout afl-fuzz -Q -d -i $indir -o $oStdin ./$f @@
             timeout $tout afl-fuzz -Q -d -i $indir -o $oFile ./$f
         fi
     done
