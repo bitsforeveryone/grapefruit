@@ -6,12 +6,6 @@ if [ $# -eq 0 ]; then
     echo "Usage: $0 [path to dir of bins] [input corpus dir] [timeout (s)]"
     echo "Use absolute paths"
 else
-    #if [ $4 == "-R" ]; then
-    #    dir = $(ls -R $1)
-    #else
-    #    dir = $(ls $1)
-    #fi
-
     bins=$1
     indir=$2
     tout=$3
@@ -29,8 +23,8 @@ else
             cd $f
             mkdir -p out_stdin
             mkdir -p out_file
-	    cd $bins
-	    timeout $tout afl-fuzz -Q -d -i $indir -o $oStdin ./$f @@
+	        cd $bins
+	        timeout $tout afl-fuzz -Q -d -i $indir -o $oStdin ./$f @@
             timeout $tout afl-fuzz -Q -d -i $indir -o $oFile ./$f
         fi
     done
